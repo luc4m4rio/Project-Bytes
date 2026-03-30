@@ -298,10 +298,34 @@ FUN_00003e20(output, ctx);              // SHA-256_Final → 32-byte hash
 ```
 
 **Storage location:** Secure NVRAM via `B7A777D1-6EB6-469E-AD1F-1165EB92B3FF` protocol
-- Slot table: up to 16 password slots
-- Slot+0x10: credential identifier (20 bytes)
-- Slot+0x20: SHA-256 hash (32 bytes)
-- Slot+0x30: additional data
+- Slot table: up to 16 password slots (indexed 0-15)
+- Cmd `0x10..0x1f` = credential identifier for each slot (20 bytes)
+- Cmd `0x20..0x2f` = BIOS/Admin password hash for each slot (32 bytes)
+- Cmd `0x30..0x3f` = HDD password hash for each slot (32 bytes)
+- B7A777D1 protocol interface: `proto->Cmd(proto, cmd, cred_GUID, &size, buf)`
+
+### ⚠️ CRITICAL: Stored hash is XOR-obfuscated (FUN_0000149c)
+
+The hash bytes are **NOT** stored as raw SHA-256 output. They are XOR-obfuscated with a 20-byte key derived from service tag data:
+
+```c
+// Applied before write and after read (symmetric XOR)
+for (i = 1; i < hash_size; i++)   // NOTE: byte 0 is NOT XOR'd
+    stored_hash[i] ^= derive_key[i % 20];
+```
+
+**Key derivation (FUN_0000149c):**
+1. Read 24-byte service data from B7A777D1 cmd `0x2618` (service tag)
+2. Copy 16 bytes from DAT_0000a4d0 (fixed key material in PE_0463 .data)
+3. Call secondary protocol `DAT_0000afc8` with service data → 20-byte XOR key
+4. XOR key is cycled: `key[i % 20]` for bytes 1..31
+
+**Implications for NVRAM analysis:**
+- Raw NVRAM bytes ≠ SHA256(password + salt)
+- To verify a password against NVRAM, must first XOR-decode with derive_key
+- derive_key requires: service tag (from cmd 0x2618) + DAT_0000a4d0 salt + DAT_0000afc8 protocol
+- Byte index 0 of stored hash is unobfuscated (can be used to verify decryption)
+- The `DAT_0000afc8` protocol identity is still unknown — needs further analysis
 
 ---
 
@@ -405,9 +429,12 @@ def encode_5bit(service_tag, key=0xBF97):
 
 **Key codec (FUN_00009504):** Converts key code to 4-char uppercase hex string (e.g., `0x8FC8` → `"8FC8"`)
 
-**Key validation table (DAT_0000a9c0, stride=0x18):**
+**Key validation table (DAT_0000a9c0, stride=0x18) — COMPLETE:**
 - Entry[0]: key `0x8FC8` (-0x7038) — the main Dell BIOS recovery code
-- Entry[i]: `offset+0` = key code (short), `offset+0x08` = variant function pointer, `offset+0x10` = table pointer
+- Entry[1]: key `0xE7A8` (-0x1858) — second primary code (TPM-linked path)
+- Entry[2]: key `0xFFFF` (-0x0001) — terminator (loop exits when sVar1 == -1)
+- Entry[i]: `offset+0` = key code (short), `offset+0x08` = variant function ptr, `offset+0x10` = table ptr
+- `DAT_0000a778 = 0000E7A8...` encodes the `0xE7A8` key; `FUN_000094b4` checks if it's registered (TPM path selector)
 
 **Lookup tables (72 chars each, located in .data):**
 | Key    | Address    | Table (72 chars) |
@@ -422,18 +449,55 @@ def encode_5bit(service_tag, key=0xBF97):
 
 ## 8. Key Protocol/GUID Inventory (Complete)
 
+### PE_0463 Internal GUID Table (from binary at raw 0x9040+)
+
+| RVA | GUID | Role in PE_0463 |
+|-----|------|-----------------|
+| `a440` | `0AE3E2CF-13DD-4D97-BD5A-98FE0F14AFE6` | Unknown (located via aee8+0x140) |
+| `a450` | `07D51D0D-7B3B-4C5C-B9EF-9DD70C0A489F` | Unknown (accessed in FUN_000019bc) |
+| `a460` | `417ACEE0-6FA9-4A82-99D7-F9B1DD271E48` | Unknown (DAT_0000a440 protocol context) |
+| `a470` | `7CE88FB3-4BD7-4679-87A8-A8D8DEE50D2B` | Handle registration GUID |
+| `a480` | `773779CA-2AE8-4073-8BC5-43376A61BFD5` | Unknown (located in FUN_000019bc) |
+| `a490` | `BD6B3090-6936-4DF0-BC73-68B06FB4E791` | Unknown (located in FUN_000019bc) |
+| `a4c0` | `B7A777D1-6EB6-469E-AD1F-1165EB92B3FF` | **Secure NVRAM protocol** (DAT_0000aec0) |
+| `a4d0` | `3A441BF0-D8E2-429E-B508-7054E3CA0FE6` | **Self GUID** — 16 bytes used as key material in XOR derivation (FUN_0000149c) |
+| `a4e0` | `51AF821C-ADAF-4ABC-9FBF-26CD5245BA22` | NVRAM key config protocol (DAT_0000afd0) |
+| `a4f0` | `60EED930-4789-40C3-ADFE-0B12317B56B1` | **Key derivation protocol** (DAT_0000afc8) — generates 20-byte XOR key |
+| `a500` | `BB52D484-DC3F-4A1F-B86A-58FA9245270A` | Admin password entry GUID |
+| `a510` | `7CEC093D-6BAC-420D-845C-CA1716AC5A92` | Owner password entry GUID |
+| `a520` | `FEE3193F-CED3-4792-B804-A8F2B6241009` | HDD password entry GUID |
+| `a530` | `38C1B06E-BDCA-45CD-B6E8-BF45845671FA` | BIOS/Admin password type identifier |
+| `a540` | `4DDB3FAC-C556-4E26-AD8E-DC8758426889` | HDD password type identifier |
+| `a550` | `C065AEAB-DD1C-4D49-BD33-4578E106C700` | Unknown password type ID |
+| `a560` | `4D624984-D1CC-4C7C-BFE4-4D7F013FF25A` | Fixed 16-byte buffer for TPM variant |
+| `a570` | `67B1372A-7ADE-4A47-8173-CC2B90D79D6C` | Unknown |
+| `a580` | `F2C68B35-9114-4528-AC75-5ADF2EBD6DAB` | Key identifier for stored password |
+| `a5a0` | `7310E28E-96EA-4360-946E-5ADC6BE8F531` | **TPM protocol** (DAT_0000afc0) |
+| `a590` | `9EE41A8C-C112-4E4F-B2F0-65D0F9B133DB` | TPM capability protocol |
+| `a5b0` | `F4CCBFB7-F6E0-47FD-9DD4-10A8F150C191` | SMM protocol GUID |
+| `a5c0` | `C2702B74-800C-4131-8746-8FB5B89CE4AC` | Unknown (located at startup) |
+| `a808` | `6E978D37-C32E-43B6-8CEB-CC9AA215109E` | **Credential GUID** — passed to all B7A777D1 NVRAM calls |
+
+### Protocol/Module Registry
+
 | GUID | Name | Module | Role |
 |------|------|--------|------|
 | `EE4E5898-3914-4259-9D6E-DC7BD79403CF` | AMI TSE | PE_0119 | BIOS auth UI / DXE driver |
 | `D95D6B4F-92FA-4E78-9C48-C68C0813688E` | SMI Dispatcher | PE_0255 | SMI 0xAF handler |
 | `F317B29B-7DC9-4114-9086-D7137EF4F118` | Setup PW State | PE_0290 | Manages Setup var pw flag |
-| `3A441BF0-D8E2-429E-B508-7054E3CA0FE6` | Crypto Keystore | PE_0463 | SHA-256 hash store/compare |
+| `3A441BF0-D8E2-429E-B508-7054E3CA0FE6` | Crypto Keystore | PE_0463 | SHA-256/MD5 hash, 8FC8 challenge |
 | `B8CAA50A-5D0E-4AEB-819D-86CA29AC6A48` | BIOS PW Handler | PE_0516 | Password verify callback |
 | `0AB697CE-B920-48AC-A265-EC5624EDCDD7` | PwHandlerProto | multiple | Password operation dispatch |
-| `BC8F69B5-E43B-4D23-B2DF-B969301909F2` | BIOS Password | PE_0463 | BIOS admin/system pw GUID |
-| `08D22BDB-9E2F-4E18-A71A-6BC5A5509FD9` | HDD Password | PE_0463 | HDD password GUID |
+| `BB52D484-DC3F-4A1F-B86A-58FA9245270A` | Admin PW Entry | PE_0516 | Admin password credential ID |
+| `7CEC093D-6BAC-420D-845C-CA1716AC5A92` | Owner PW Entry | PE_0516 | Owner password credential ID |
+| `FEE3193F-CED3-4792-B804-A8F2B6241009` | HDD PW Entry | PE_0516 | HDD password credential ID |
 | `C8BD7E42-AE85-408C-8ADA-177EE2C86DE9` | LinkDellPwData | PE_0119 | DXE↔SMM comm channel |
 | `B7A777D1-6EB6-469E-AD1F-1165EB92B3FF` | Secure NVRAM | PE_0463 | Underlying password storage |
+| `60EED930-4789-40C3-ADFE-0B12317B56B1` | Key Derive Proto | unknown | XOR key derivation (afc8) |
+| `7310E28E-96EA-4360-946E-5ADC6BE8F531` | TPM Protocol | PE_0463 | TPM-backed challenge (afc0) |
+| `6E978D37-C32E-43B6-8CEB-CC9AA215109E` | Credential GUID | PE_0463 | Credential slot identifier |
+| `38C1B06E-BDCA-45CD-B6E8-BF45845671FA` | BIOS PW Type | PE_0463 | Identifies BIOS/Admin hash slot |
+| `4DDB3FAC-C556-4E26-AD8E-DC8758426889` | HDD PW Type | PE_0463 | Identifies HDD hash slot |
 | `EC87D643-EBA4-4BB5-A1E5-3F3E36B20DA9` | AMI Setup | multiple | 6141-byte setup blob |
 | `18A3C6DC-5EEA-48C8-A1C1-B53389F98999` | SmmSwDispatch2 | PE_0255 | SMI registration |
 
