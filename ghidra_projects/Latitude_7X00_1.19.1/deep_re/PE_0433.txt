@@ -1,0 +1,985 @@
+======================================================================
+DEEP RE: PE_0433.bin
+PATH   : /tmp/critical_modules/PE_0433.bin
+FORMAT : Portable Executable (PE)
+LANG   : x86:LE:64:default
+SIZE   : 0x1F1A0 bytes
+======================================================================
+
+── UNICODE STRINGS (HII/setup labels) ──────────────────────────────
+  0x000061A2  u"Enabled"
+  0x000061B8  u"Disabled"
+  0x000061D0  u"Enabled"
+  0x000061E6  u"Disabled"
+  0x0000620A  u"LogicProc"
+  0x00006224  u"CpuCore"
+  0x00006258  u"CoresAll"
+  0x00006270  u"CStatesCtrl"
+  0x0000628E  u"SoftGuardEn"
+  0x000062AC  u"SoftControlled"
+  0x000062CE  u"^EnclaveSize[SuppressIfNot:SoftGuardEn=Enabled]"
+  0x00006334  u"Legacy"
+  0x00006348  u"Disable"
+  0x00006386  u"UsbProvision"
+  0x000063A4  u" EnableSecondary"
+  0x000063CA  u"4SedBlockSidAuthentication"
+  0x00006404  u"$TpmRemoteActivate"
+  0x0000642E  u"(MfgModePxeAttribute"
+  0x00006482  u"BiosAutoRcvr"
+  0x000064A0  u"$BrightnessBattery"
+  0x000064CC  u"BrightnessAc"
+  0x000064EC  u"AlwaysOn"
+  0x00006504  u"PrivacyScreen"
+  0x00006526  u"Clear"
+  0x00006548  u"BiosLogClear"
+  0x00006566  u" ThermalLogClear"
+  0x0000658E  u"PowerLogClear"
+  0x000065AE  u"6WirelessSwitchCellularCtrl"
+  0x000065EA  u"$WirelessSwitchGps"
+  0x00006614  u".WirelessSwitchWlanCtrl"
+  0x00006648  u"8WirelessSwitchBluetoothCtrl"
+  0x00006686  u"$WirelessSwitchUwb"
+  0x000066B2  u"WirelessWwan"
+  0x000066D2  u"WirelessLan"
+  0x000066EE  u" BluetoothDevice"
+  0x00006724  u"WirelessUwb"
+  0x00006740  u" WlanCountryCode"
+  0x00006766  u"BUefi[ForceIf:SecureBoot=Enabled]"
+  0x000067B0  u"BootList"
+  0x000067C8  u"Virtualization"
+  0x000067EC  u"VtForDirectIo"
+  0x0000680E  u"TrustExecution"
+  0x00006832  u"Speedstep"
+  0x0000684C  u"TurboMode"
+  0x00006866  u"Everyday"
+  0x0000687E  u"Weekdays"
+  0x00006896  u"SelectDays"
+  0x000068B0  u"VAutoOnSun[SuppressIfNot:AutoOn=SelectDays]"
+  0x0000690C  u"VAutoOnMon[SuppressIfNot:AutoOn=SelectDays]"
+  0x00006968  u"VAutoOnTue[SuppressIfNot:AutoOn=SelectDays]"
+  0x000069C4  u"VAutoOnWed[SuppressIfNot:AutoOn=SelectDays]"
+  0x00006A20  u"XAutoOnThur[SuppressIfNot:AutoOn=SelectDays]"
+  0x00006A7E  u"VAutoOnFri[SuppressIfNot:AutoOn=SelectDays]"
+  0x00006ADA  u"VAutoOnSat[SuppressIfNot:AutoOn=SelectDays]"
+  0x00006B38  u"LanOnly"
+  0x00006B4E  u"WlanOnly"
+  0x00006B7C  u"LanWithPxeBoot"
+  0x00006B9E  u" DisableStandard"
+  0x00006BC6  u"WakeOnAc"
+  0x00006C12  u"\nLast"
+  0x00006C3A  u"WakeOnDock"
+  0x00006C56  u"WakeOnLan"
+  0x00006C6E  u"*PrimaryBattChargeCfg"
+  0x00006C9E  u"&SliceBattChargeCfg"
+  0x00006CCA  u"zCustomChargeStart[SuppressIfNot:PrimaryBattChargeCfg=Custom]"
+  0x00006D4A  u"xCustomChargeStop[SuppressIfNot:PrimaryBattChargeCfg=Custom]"
+  0x00006DCA  u"Standard"
+  0x00006DE2  u"Express"
+  0x00006DF8  u"PrimAcUse"
+  0x00006E12  u"Adaptive"
+  0x00006E2A  u"Custom"
+  0x00006E3E  u"LongLifeCycle"
+  0x00006E60  u"LidSwitch"
+  0x00006E78  u"0LongLifeCyclePriBattery"
+  0x00006EB0  u"AutoOn"
+  0x00006EC2  u"JAutoOnHr[ReadOnlyIf:AutoOn=Disabled]"
+  0x00006F12  u"JAutoOnMn[ReadOnlyIf:AutoOn=Disabled]"
+  0x00006F64  u"FanCtrlOvrd"
+  0x00006F82  u"WlanAutoSense"
+  0x00006FA4  u"WwanAutoSense"
+  0x00006FC6  u"TypeCPower"
+  0x00006FFE  u"$ThermalManagement"
+  0x0000702A  u"Optimized"
+  0x00007042  u"\nCool"
+  0x00007064  u"\"UltraPerformance"
+  0x0000708E  u"BlockSleep"
+  0x000070AA  u"PeakShiftCfg"
+  0x000070C8  u"xPeakShiftBatteryThreshold[SuppressIf:PeakShiftCfg=Disabled]"
+  0x00007146  u"(AdvBatteryChargeCfg"
+  0x00007176  u"SleepMode"
+  0x0000718E  u" OsAutoSelection"
+  0x000071B6  u"ForceS3"
+  0x000071CC  u"SpeedShift"
+  0x000071E6  u" ForceLpmAspmOff"
+  0x0000720E  u"SdCard"
+  0x00007222  u"SdCardBoot"
+  0x0000723E  u"SdCardReadOnly"
+  0x00007262  u"SecureBoot"
+  0x0000727E  u"SecureBootMode"
+  0x000072A2  u"AuditMode"
+  0x000072BC  u"DeployedMode"
+  0x0000730E  u"LegacyOrom"
+  0x00007328  u"$AttemptLegacyBoot"
+  0x00007352  u"*UefiBootPathSecurity"
+  0x00007382  u"0AlwaysExceptInternalHdd"
+  0x000073B8  u"6AlwaysExceptInternalHddPxe"
+  0x0000740A  u"Never"
+  0x0000741A  u"(PermanentlyDisabled"
+  0x0000744A  u"PasswordBypass"
+  0x0000746E  u"RebootBypass"
+  0x0000748E  u"PasswordLock"
+  0x000074C2  u"Attestation"
+  0x000074E0  u"TpmSecurity"
+  0x000074FC  u"^TpmActivation[SuppressIf:TpmSecurity=Disabled]"
+  0x00007562  u"Enabled"
+  0x00007578  u"Disabled"
+  0x00007590  u"Activate"
+  0x000075A8  u"Deactivate"
+  0x000075C2  u"TTpmClear[SuppressIf:TpmSecurity=Disabled]"
+  0x0000761E  u"CurrentState"
+  0x0000763C  u"*Disabled/Deactivated"
+  0x0000766C  u"(Enabled/Deactivated"
+  0x0000769A  u"$Enabled/Activated"
+  0x000076E8  u"TTpmPpiPo[SuppressIf:TpmSecurity=Disabled]"
+  0x00007742  u"VTpmPpiDpo[SuppressIf:TpmSecurity=Disabled]"
+  0x0000779E  u"jTpmPpiClearOverride[SuppressIf:TpmSecurity=Disabled]"
+  0x00007810  u"TcmSecurity"
+  0x0000782E  u"GpeClrOwner"
+  0x0000784C  u"GpeClrBinding"
+  0x0000786E  u"Computrace"
+  0x0000788A  u"Absolute"
+  0x000078A0  u"$AdminSetupLockout"
+  0x000078CC  u"StrongPassword"
+  0x000078EE  u"(AdminPasswordMinLen"
+  0x0000791C  u"(AdminPasswordMaxLen"
+  0x0000794A  u"*SystemPasswordMinLen"
+  0x0000797A  u"*SystemPasswordMaxLen"
+  0x000079AA  u"&OromKeyboardAccess"
+  0x000079D8  u"Enabled"
+  0x000079EE  u"OnetimeEnable"
+  0x00007A10  u"Disabled"
+  0x00007A26  u"$IntlPlatformTrust"
+  0x00007A50  u",CapsuleFirmwareUpdate"
+  0x00007A82  u",SmmSecurityMitigation"
+  0x00007AB4  u"8PpiBypassSedBlockSidCommand"
+  0x00007AF4  u"UefiNwStack"
+  0x00007B12  u"Serial1"
+  0x00007B7C  u"Thunderbolt"
+  0x00007B98  u" ThunderboltBoot"
+  0x00007BBE  u"&ThunderboltPreboot"
+  0x00007BEA  u"$ThunderboltSecLvl"
+  0x00007C16  u"NoSec"
+  0x00007C28  u"UserAuth"
+  0x00007C40  u"SecConn"
+  0x00007C56  u"DpUsbOnly"
+  0x00007C6E  u",TbtPcieModeAutoSwitch"
+  0x00007CA2  u"BIOSEnumMode"
+  0x00007CC2  u"NativeEnum"
+  0x00007CDE  u"BIOSAssistEnum"
+  0x00007D02  u"EmbSataRaid"
+  0x00007D40  u"Disabled"
+  0x00007D58  u"SmartErrors"
+  0x00007D74  u" UnobtrusiveMode"
+  0x00007D9A  u"$FingerprintReader"
+  0x00007DC4  u"\"UsbPortsExternal"
+  0x00007DEE  u"Microphone"
+  0x00007E08  u" InternalSpeaker"
+  0x00007E30  u"EsataPorts"
+  0x00007E4C  u"Camera"
+  0x00007E60  u"Camera"
+  0x00007E74  u"Camera2"
+  0x00007E88  u"$HdFreeFallProtect"
+  0x00007EB2  u" IntegratedAudio"
+  0x00007EF2  u"*KeyboardIllumination"
+  0x00007F24  u"Disabled"
+  0x00007F4A  u"Bright"
+  0x00007F5C  u" DellCoreService"
+  0x00007F84  u"Touchscreen"
+  0x00007FA2  u"UsbPowerShare"
+  0x00008066  u",KbdBacklightTimeoutAc"
+  0x00008098  u"0KbdBacklightTimeoutBatt"
+  0x000080D0  u"Never"
+  0x0000813E  u"WatchdogTimer"
+  0x00008170  u"Minimal"
+  0x00008186  u"Thorough"
+  0x0000819E  u"EnabledByFnKey"
+  0x000081C0  u"\"EnabledByNumLock"
+  0x00008210  u"PowerWarn"
+  0x0000823E  u"NumLock"
+  0x00008254  u"FnLock"
+  0x00008268  u"FnLockMode"
+  0x00008284  u"Fastboot"
+  0x0000829C  u"ExtPostTime"
+  0x000082BA  u"FullScreenLogo"
+  0x000082DC  u" PostHelpDeskKey"
+  0x00008304  u"WarningsAndErr"
+  0x0000833E  u"ContWrnErr"
+  0x0000835A  u"PromptWrnErr"
+  0x00008378  u" MacAddrPassThru"
+  0x000083A0  u"SystemUnique"
+  0x000083C0  u"IntegratedNic1"
+  0x000083E2  u"$DockWarningsEnMsg"
+  0x0000840E  u"PostMebxKey"
+  0x00008440  u"Enabled"
+  0x00008454  u"&RestrictMebxAccess"
+  0x00008482  u"Disabled"
+  0x00008498  u"0AutoOSRecoveryThreshold"
+  0x000084FA  u"0SupportAssistOSRecovery"
+  0x00008530  u"4SupportAssistSupportLevel"
+  0x0000856C  u"BIOSConnect"
+  0x0000858A  u"ServiceOsClear"
+  0x000085B6  u"Enabled"
+  0x000085CC  u"Disabled"
+  0x000085E4  u"Enabled"
+  0x000085FA  u"Disabled"
+  0x00008630  u" Hyper-Threading"
+  0x00008658  u"Enabled for Windows XP and Linux (OS optimized for Hyper-Threading Technology) and Disabled for other OS (OS not optimized for Hyper-Threading Technology)."
+  0x00008794  u".Active Processor Cores"
+  0x000087C8  u"jNumber of cores to enable in each processor package."
+  0x00008866  u"C states"
+  0x0000887E  u"Enable/Disable CPU Power Management. Allows CPU to go to C states when it's not 100% utilized."
+  0x00008940  u"4SW Guard Extensions (SGX)"
+  0x0000897A  u"^Enable/Disable Software Guard Extensions (SGX)"
+  0x000089DE  u"(Software Controlled"
+  0x00008A0C  u"(Enclave Memory Size"
+  0x00008A88  u" (SGX) Enclave Reserve Memory Size. When SGX is set to Software Controlled this setting is not available and has no effect."
+  0x00008B8E  u"Legacy"
+  0x00008BA2  u"Disable"
+  0x00008BDE  u"*Enable USB Provision"
+  0x00008C10  u"When enabled, Intel AMT can be provisioned using the local provisioning file via a USB storage device.\r\nWhen disabled, provisioning Intel AMT from a USB storage device is blocked.\r\n"
+  0x00008D80  u"6Lock Mode Enable/Secondary"
+  0x00008DBC  u":SED Block SID Authentication"
+  0x00008E04  u"(TPM Remote Activate"
+  0x00008E32  u":Manufacturing Mode Attribute"
+  0x00008E74  u"This field allows users to securely erase data from all internal storage devices. The process adheres to SerialATA Security Erase and eMMC JEDEC Sanitize specifications.\r\n\r\nSelecting this operation will securely erase all devices installed in the system. This operation is not recoverable. Once this operation is initiated, it cannot be terminated. All data will be permanently deleted.\r\n\r\nThe following is a list of devices affected by this operation:\r\n\r\n    - Internal SATA HDD/SSD,\r\n    - Internal M.2 SATA SSD,\r\n    - Internal M.2 PCIe SSD,\r\n    - Internal eMMC.\r\n\r\nTo preserve the data on a specific device, please remove any of the above devices prior to initiating this process.\r\n\r\nWarning: This operation will permanently deleted all data from the device(s)!"
+  0x00009476  u"$Wipe on Next Boot"
+  0x000094A2  u"BIOS Recovery enables the user to recover from certain corrupted BIOS conditions from a recovery file on the user primary hard drive or an external USB key. \r\n\r\nWhen \"Enabled\" is selected, BIOS stores the recovery file on the user primary hard drive. BIOS Recovery is available via the recovery file on the user primary hard drive or an external USB key. \r\n\r\nWhen \"Disabled\" is selected, BIOS does not store the recovery file on the user primary hard drive. BIOS Recovery is only available via the external USB key. \r\n\r\nThe default option is \"Enabled\". \r\n\r\nBIOS Recovery from Hard Drive is not supported when the hard drive(s) are configured for RAID mode. \r\n\r\nBIOS Recovery via the external USB key is always enabled with either options. \r\n\r\nBIOS Auto-Recovery automatically recovers BIOS without user actions when BIOS failed integrity check. This feature requires BIOS Recovery from Hard Drive to be Enabled.\r\n\r\n"
+  0x00009BCE  u"<BIOS Recovery from Hard Drive"
+  0x00009C10  u"&BIOS Auto-Recovery"
+  0x00009C3E  u"This option sets the panel brightness independently for Battery and AC power."
+  0x00009CDE  u",Brightness On Battery"
+  0x00009D10  u"\"Brightness On AC"
+  0x00009D3A  u"Always On"
+  0x00009D54  u"Privacy Screen"
+  0x00009D78  u"When Disabled, the privacy screen is not applied to the embedded display panel.\r\n\r\nWhen Enabled, the privacy screen is applied to the embedded display panel and can be toggled between public mode and privacy mode using the Fn+F9 key combination on the embedded keyboard.\r\n\r\nWhen Always On, the privacy screen is always on and cannot be turned off by the user.\r\n"
+  0x0000A052  u"Clear Log"
+  0x0000A06A  u"\"Do Not Clear Log"
+  0x0000A09E  u"Clear BIOS Log"
+  0x0000A0C0  u"$Clear Thermal Log"
+  0x0000A0EA  u" Clear Power Log"
+  0x0000A112  u"This setting determines which wireless devices can be controlled by the Wireless Switch. For Windows 8 systems, this is controlled by OS driver directly so the setting here doesn't affect the Wireless Switch behavior.\r\n\r\n"
+  0x0000A2E2  u"*GPS (on WWAN Module)"
+  0x0000A366  u"This field allows you to control which wireless devices are on when the operating system loads.\r\n\r\n\r\n\r\nNOTE: The setting of the Internal Wireless WWAN can be changedinside the operating system by an application such as DCP or by the <Fn+F9> hotkey.\r\n"
+  0x0000A572  u"This field allows you to control which wireless devices are on when the operating system loads.\r\n\r\n\r\n\r\nNOTE: The setting of the Internal Wireless WLAN can be changedinside the operating system by an application such as DCP or by the <Fn+F9> hotkey.\r\n"
+  0x0000A804  u" device.\r\n\r\n"
+  0x0000A822  u"4Contactless Smartcard/NFC"
+  0x0000A85C  u"bEnable the Near Field Computing (NFC) device\r\n\r\n"
+  0x0000A8D2  u"tThis field lets you enable or disable the UWB device.\r\n\r\n"
+  0x0000A94C  u"$WLAN Country Code"
+  0x0000A988  u"Boot List"
+  0x0000A9A0  u"LSelect legacy or UEFI boot order list"
+  0x0000A9F2  u"NEnable Intel Virtualization Technology"
+  0x0000AB4A  u" Virtualization Technology.\r\n\r\n[NOTE: Trusted Execution requires Virtualization Technology to be enabled.]"
+  0x0000AC24  u"2Enable VT for Direct I/O"
+  0x0000AD60  u" Virtualization Technology for Direct I/O.\r\n\r\n[NOTE: Trusted Execution requires VT for Direct I/O to be enabled.]"
+  0x0000AE48  u"$Trusted Execution"
+  0x0000AF8A  u" Trusted Execution Technology. The TPM has to be enabled and activated, and Virtualization Technology and VT for Direct I/O must be enabled to use this feature."
+  0x0000B350  u"-enabled CPU to operate in multiple performance states.\r\n"
+  0x0000B612  u" driver to increase the performance of the CPU OR graphics \r\n~10~ processor.\r\n"
+  0x0000B6F0  u"Every Day"
+  0x0000B70A  u"Weekdays"
+  0x0000B722  u"Select Days"
+  0x0000B740  u"Sunday"
+  0x0000B754  u"Sunday"
+  0x0000B768  u"Monday"
+  0x0000B77C  u"Monday"
+  0x0000B790  u"Tuesday"
+  0x0000B7A6  u"Tuesday"
+  0x0000B7BC  u"Wednesday"
+  0x0000B7D6  u"Wednesday"
+  0x0000B7F0  u"Thursday"
+  0x0000B808  u"Thursday"
+  0x0000B820  u"Friday"
+  0x0000B834  u"Friday"
+  0x0000B848  u"Saturday"
+  0x0000B860  u"Saturday"
+  0x0000B878  u"LAN Only"
+  0x0000B890  u"WLAN Only"
+  0x0000B8AA  u"LAN or WLAN"
+  0x0000B8C6  u"$LAN with PXE Boot"
+  0x0000B8F0  u"6Lock Mode Disable/Standard"
+  0x0000B92E  u"Wake on AC"
+  0x0000B94A  u"This option allows the system (if Off or in Hibernate) to power-on automatically, when AC is inserted."
+  0x0000BA1E  u"AC Recovery"
+  0x0000BA3C  u"This field specifies how the system will behave when AC power is restored after a AC\r\npower loss.\r\n\r\nPower Off~19~= System stays off after AC power is restored.\r\nPower On~19~= System powers on after AC power is restored.\r\nLast Power State~19~= System returns to the previous state after AC power recovery.\r\n"
+  0x0000BCAA  u"Power Off"
+  0x0000BCC4  u"Power On"
+  0x0000BCDA  u"\"Last Power State"
+  0x0000BD04  u"The USB Wake option allows you to enable USB devices to wake the system from Standby.\r\n\r\nNOTE: This feature is only functional when the AC power adapter is connected. If the AC power adapter is removed before Standby, the BIOS will remove power from all of the USB ports to conserve battery power.\r\n"
+  0x0000BF60  u"0Enable USB Wake Support"
+  0x0000BF96  u"0Wake on Dell USB-C Dock"
+  0x0000BFCE  u"\r\nThe Wake on Dell USB-C Dock feature allows the system to automatically wake up when connecting to a Dell USB-C dock. Unlike the USB Wake feature it does not require AC connection at time of Standby.\r\n"
+  0x0000C168  u"\"Wake on LAN/WLAN"
+  0x0000C192  u"This option allows the computer to power up from the off state when triggered by a special LAN signal or from the hibernate state when triggered by a special wireless LAN signal. Wakeup from the standby state is unaffected by this setting and must be enabled in the operating system. This feature only works when the computer is connected to AC.\r\n\r\nDisabled~14~= Do not allow the system to power on by special LAN signals when it receives a wakeup signal\r\n~14~  from the LAN or wireless LAN.\r\nLAN Only~14~= Allow the system to be powered on by special LAN signals.\r\nWLAN Only~14~= Allow the system to be powered on by special WLAN signals.\r\nLAN or WLAN~14~= Allow the system to be powered on by special LAN or wireless LAN signals.\r\nLAN with PXE~14~= A wakeup packet sent to the system in either the S4 or S5\r\n~14~  state will cause the system to wake-up and immediately boot to PXE.\r\n"
+  0x0000C882  u"JPrimary Battery Charge Configuration"
+  0x0000C8D2  u"FBattery Slice Charge Configuration"
+  0x0000C91E  u"(Custom Charge Start"
+  0x0000C94C  u"&Custom Charge Stop"
+  0x0000C97A  u"Standard"
+  0x0000C9B4  u"\"Primarily AC Use"
+  0x0000C9DE  u"Adaptive"
+  0x0000C9F6  u"Custom"
+  0x0000CA08  u" Long Life Cycle"
+  0x0000CAC8  u"~25~= The battery may be charged over a shorter period of time \r\n~26~using Dell's fast charging technology.\r\n\r\n\r\nNote:  Battery settings may not be available for all battery types.\r\n~6~ In order to enable this option 'Advanced Battery Charge Mode' must be disabled."
+  0x0000CE46  u"~21~= The battery may be charged over a shorter period of time using Dell's fast charging\r\n~23~technology.\r\nPrimarily AC Use~21~= Extends battery lifespan for users who primarily operate their system while plugged\r\n~23~in to an external power source.\r\nCustom~21~= Custom select when the battery starts and stops charging.\r\n\r\n\r\nNote:  Battery settings may not be available for all battery types.\r\n~6~ In order to enable this option 'Advanced Battery Charge Mode' must be disabled."
+  0x0000D20C  u"A long life cycle battery is currently attached.  The charge configuration can not \r\nbe changed with this type of battery.\r\n"
+  0x0000D30A  u"$Enable Lid Switch"
+  0x0000D336  u"This option allow to disable the lid switch so the screen does not shut off when lid is closed.\r\n"
+  0x0000D3FE  u"@Long Life Cycle Primary Battery"
+  0x0000D446  u"Auto On"
+  0x0000D45C  u"This option sets the time of day when you would like the system to turn on automatically.\r\n\r\nDisabled~14~= The system will not automatically power up.\r\nEvery Day~14~= The system will power up every day at the time you specified above.\r\nWeekdays~14~= The system will power up Monday through Friday at the time you specified above.\r\nSelect Days~14~= The system will power up on the days selected above at the time you specified above.\r\n"
+  0x0000D7C8  u"Auto On HOUR"
+  0x0000D7E8  u"Auto On MINUTE"
+  0x0000D80A  u"*Fan Control Override"
+  0x0000D844  u"&Control WLAN radio"
+  0x0000D878  u"&Control WWAN radio"
+  0x0000D8AC  u".Type-C Connector Power"
+  0x0000D8E2  u"This option lets you set the maximum power that can be drawn from the Type-C connector.\r\n\r\nNote: Setting a higher power value for the Type-C connector may cause the system to throttle sooner, if the total system power budget is exceeded. If power budget is exceeded, it will not damage your system or peripheral(s) but may cause your system to run more slowly."
+  0x0000DBBA  u"7.5 Watts"
+  0x0000DBD4  u"15 Watts"
+  0x0000DBEA  u"&Thermal Management"
+  0x0000DC18  u"Optimized: Standard setting for cooling fan and processor heat mangaement.\r\nThis setting is a balance of performance, noise and temperature.\r\nCool: Processor and cooling fan speed are adjusted for a cooler system surface temperature.\r\nThis may mean reduced system performance and more noise.\r\nQuiet: Processor and cooling fan speed are adjusted to reduce fan noise.\r\nThis may mean reduced system performance and a higher system surface temperature.\r\nUltra Performance: Processor and cooling fan speed are increased for more performance.\r\nThis may mean higher system surface temperature and more noise. "
+  0x0000E0D4  u"Optimized"
+  0x0000E0EC  u"\nCool"
+  0x0000E10E  u"$Ultra Performance"
+  0x0000E13A  u"Block Sleep"
+  0x0000E158  u"This option lets you to block entering to sleep in OS environment\r\nWhen enabled system won't go to sleep, Intel Rapid Start will be disabled automatically and OS Power option will be blank if it was set to Sleep."
+  0x0000E308  u"Peak shift minimizes AC power usage at times of peak demand. Checking \"Enable Peak Shift\" enables this feature, unchecking disables it. When enabled, the following takes place using the user set daily times and threshold value:\r\n  - From \"Peak Shift Start\" until \"Peak Shift End\", AC power is not used unless \"Battery Threshold\" is reached, \r\n    however, the battery does not charge.\r\n  - From \"Peak Shift End\" until \"Peak Shift Charge Start\", AC power is used when available but the battery does \r\n    not charge.\r\n  - At all other times, AC power is used when available and the battery is able to charge."
+  0x0000E7CC  u"$Enable Peak Shift"
+  0x0000E7F6  u"$Battery Threshold"
+  0x0000E822  u"Advanced Battery Charge  maximizes battery health while still supporting heavy use during the work day. Checking \"Enable Advanced Battery Charge Mode\" enables this feature, unchecking disables it. When enabled, the following takes place using the user set daily times and time periods:\r\n  - From \"Beginning of Day\" and lasting for \"Work Period\", ExpressCharge(tm) is used for accelerated battery\r\n     charging.\r\n  - At all other times Standard Charge is used for maximum battery health.\r\n  - Setting \"Work Period\" to 0 disables this feature for that day."
+  0x0000EC7E  u"HEnable Advanced Battery Charge Mode"
+  0x0000ECCE  u"Sleep Mode"
+  0x0000ECEA  u"This option is used to select which sleep mode will be used by the operating system.The BIOS can support either Modern Standby (connected or disconnected), or S3 sleep modes.The OS Automatic Selection option allows the operating system to select the appropriate mode automatically.The Force S3 option will disable Modern Standby capabilities, and force the operating system to use the S3 sleep state only."
+  0x0000F01A  u".OS Automatic Selection"
+  0x0000F050  u"Force S3"
+  0x0000F066  u"HEnable Intel Speed Shift Technology"
+  0x0000F0B6  u"This option is used to enable/disable Intel Speed Shift Technology support. Setting this option to enable allows the operating system to select the appropriate processor performance automatically."
+  0x0000F244  u".Force Lpm And Aspm Off"
+  0x0000F27A  u"Force SATA/USB low power mode and Active State Power Management (ASPM) Off in Manufacturing Mode."
+  0x0000F342  u"@Enable Secure Digital (SD) Card"
+  0x0000F392  u"<Secure Digital (SD) Card Boot"
+  0x0000F3DE  u"PSecure Digital (SD) Card Read-Only Mode"
+  0x0000F43E  u"&Secure Boot Enable"
+  0x0000F46C  u"Enable or disable Secure Boot. The boot mode must be set to UEFI and Enable Legacy Option ROMs must be turned off to enable Secure Boot."
+  0x0000F582  u"\"Secure Boot Mode"
+  0x0000F5AC  u"Changes to the Secure Boot operation mode modifies the behavior of Secure Boot to allow evaluation or enforcement of UEFI driver signatures. Deployed Mode should be selected for normal operation of Secure Boot.\r\nDeployed Mode - Checks the integrity of UEFI drivers and bootloaders before allowing execution. Use this mode for full Secure Boot protections.\r\nAudit Mode - Performs a signature check but does not block execution of all UEFI drivers and bootloaders.  Use this mode when making modifications to Secure Boot Keys."
+  0x0000F9CC  u"Audit Mode"
+  0x0000F9E8  u"Deployed Mode"
+  0x0000FA3A  u"4Enable Legacy Option ROMs"
+  0x0000FA76  u"Enable or disable Legacy Option ROMs. This option is required for Legacy boot mode and is not allowed if Secure Boot is enabled."
+  0x0000FB7C  u"6Enable Attempt Legacy Boot"
+  0x0000FBBA  u"Enable or disable Auto Boot Legacy. This feature will attempt the UEFI boot list and if it fails toboot will attempt to boot the Legacy boot list. This feature is not allowed if Secure Boot is enabled."
+  0x0000FD52  u"0UEFI Boot Path Security"
+  0x0000FD8A  u"These options control whether or not the system will prompt the user to enter the Admin password (if set) when booting a UEFI boot path from the F12 Boot Menu:\r\n\r\n * Always,Except Internal HDD: All UEFI boot paths require the user to enter the Admin password, except for boot paths hosted on internal hard disk drives.\r\n * Always,Except Internal HDD&PXE: All UEFI boot paths require the user to enter the Admin password, except for boot paths hosted on internal hard disk drives or PXE Boot.\r\n * Always: Booting to any UEFI boot path requires the user to enter the Admin password.\r\n * Never:  The Admin password is not required for booting to UEFI boot paths.\r\n\r\n\r\nIf the Admin password is not set, these options have no effect."
+  0x00010340  u"6Always,Except Internal HDD"
+  0x0001037C  u">Always,Except Internal HDD&PXE"
+  0x000103D6  u"Never"
+  0x000103E6  u"*Permanently Disabled"
+  0x00010416  u".Enter the old password"
+  0x0001044A  u".Enter the new password"
+  0x0001047E  u"2Confirm the new password"
+  0x000104C2  u"This option lets you set, change, or delete the System password (previously called the \"Primary\" password). When this password is set, it requires the password be entered when the system is powered on (including when restarting from Standby) and also prohibits changes to the owner tag.\r\n\r\nSuccessful changes to this password take effect immediately."
+  0x00010786  u"This option lets you set, change, or delete the password on the system's internal  hard disk drive (HDD).\r\nSuccessful changes to this password take effect immediately. Any change to this option will require a system reboot when you exit setup.\r\n\r\nWhen an HDD password is set, it travels with the hard disk, so the disk is protected even if it is placed into another computer.\r\n\r\nYou must enter the password for a protected HDD whenever the drive is powered on (including when restarting from Standby). If you do not enter the correct password, the HDD will simply not function. It will remain in this state until you power the system off (or enter Standby), power the system back on, and enter the correct password.\r\n\r\nBy default, the drive will not have a password set."
+  0x00010D92  u"This option lets you set, change, or delete the password on the system's module  bay hard disk drive (HDD).\r\nSuccessful changes to this password take effect immediately. Any change to this option will require a system reboot when you exit setup.\r\n\r\nWhen an HDD password is set, it travels with the hard disk, so the disk is protected even if it is placed into another computer.\r\n\r\nYou must enter the password for a protected HDD whenever the drive is powered on (including when restarting from Standby). If you do not enter the correct password, the HDD will simply not function. It will remain in this state until you power the system off (or enter Standby), power the system back on, and enter the correct password.\r\n\r\nBy default, the drive will not have a password set."
+  0x000113A2  u"This option lets you set, change, or delete the password on the system's eSATA  dock bay hard disk drive (HDD).\r\nSuccessful changes to this password take effect immediately. Any change to this option will require a system reboot when you exit setup.\r\n\r\nWhen an HDD password is set, it travels with the hard disk, so the disk is protected even if it is placed into another computer.\r\n\r\nYou must enter the password for a protected HDD whenever the drive is powered on (including when restarting from Standby). If you do not enter the correct password, the HDD will simply not function. It will remain in this state until you power the system off (or enter Standby), power the system back on, and enter the correct password.\r\n\r\nBy default, the drive will not have a password set."
+  0x000119BA  u"This option lets you set, change, or delete the password on the system's eSATA  bay hard disk drive (HDD).\r\nSuccessful changes to this password take effect immediately. Any change to this option will require a system reboot when you exit setup.\r\n\r\nWhen an HDD password is set, it travels with the hard disk, so the disk is protected even if it is placed into another computer.\r\n\r\nYou must enter the password for a protected HDD whenever the drive is powered on (including when restarting from Standby). If you do not enter the correct password, the HDD will simply not function. It will remain in this state until you power the system off (or enter Standby), power the system back on, and enter the correct password.\r\n\r\nBy default, the drive will not have a password set."
+  0x00011FC8  u"This option lets you set, change, or delete the password on the system's M.2 SATA  solid state drive (SSD).\r\nSuccessful changes to this password take effect immediately. Any change to this option will require a system reboot when you exit setup.\r\n\r\nWhen a SSD password is set, it travels with the drive, so the drive is protected even if it is placed into another computer.\r\n\r\nYou must enter the password for a protected SSD whenever the drive is powered on (including when restarting from Standby). If you do not enter the correct password, the SSD will simply not function. It will remain in this state until you power the system off (or enter Standby), power the system back on, and enter the correct password.\r\n\r\nBy default, the drive will not have a password set."
+  0x000125CE  u" Password Bypass"
+  0x000125F6  u"This option lets you bypass the System (Boot) Password and the internal HDD password prompts during a system restart. \r\n\r\nDisabled~27~= Always prompt for the system and internal HDD passwords when they are set.\r\nReboot Bypass~27~= Bypass the password prompts on Restarts (warm boots).\r\n\r\nNOTE: The system will always prompt for the System and internal HDD passwords when powered on from the off state (a cold boot). Also, the system will always prompt for passwords on any module bay HDDs that may be present.\r\n"
+  0x000129FC  u"Reboot Bypass"
+  0x00012A1E  u"This option lets you determine whether changes to the System and Hard Disk passwords are permitted when an administrator password is set. When disabled, the System and Hard Disk passwords are locked by the admin password. They cannot be set, modified or deleted unless setup is unlocked. Setup is unlocked when there is no admin password, or when the admin password has been entered in the \"Unlock Setup\" option. When enabled, the System and Hard Disk passwords can be set, modified or deleted even when other setup fields are locked by the admin password.\r\n"
+  0x00012E80  u"BAllow Non-Admin Password Changes"
+  0x00012EDE  u"DMeasurement algorithm for TPM 2.0"
+  0x00012F28  u"&Attestation Enable"
+  0x00012F54  u"&Key Storage Enable"
+  0x00012F82  u"Enable or Disable TPM 2.0 endorsement hierarchy or storage hierarchy"
+  0x00013024  u"<Enable/Disable the TPM device"
+  0x00013068  u"TPM State"
+  0x00013080  u"\\Activate/Deactivate/ForceClear the TPM device"
+  0x000130E4  u"Enabled"
+  0x000130FA  u"Disabled"
+  0x00013112  u"Activate"
+  0x0001312A  u"Deactivate"
+  0x00013146  u"Clear"
+  0x00013156  u"LDisplays the current state of the TPM"
+  0x000131AA  u"Current State"
+  0x000131CA  u"*Disabled/Deactivated"
+  0x000131FA  u"(Enabled/Deactivated"
+  0x00013228  u"$Enabled/Activated"
+  0x00013254  u"MOR State"
+  0x0001326C  u"tEnable/Disable the MOR (Memory Overwrite Request) feature"
+  0x000132E8  u"Kill TPM"
+  0x00013300  u"Kill TPM Help"
+  0x00013320  u">PPI Bypass for Enable Commands"
+  0x00013364  u"@PPI Bypass Enable commands help"
+  0x000133AA  u"@PPI Bypass for Disable Commands"
+  0x000133F0  u"BPPI Bypass Disable commands help"
+  0x00013438  u":PPI Bypass for Clear Command"
+  0x0001347A  u"This option controls the TPM Physical Presence Interface (PPI). When enabled, this setting will allow the OS \r\nto skip BIOS PPI user prompts when issuing the Clear command. Changes to this setting take effect immediately"
+  0x0001363A  u"TCM Security"
+  0x00013658  u"<Enable/Disable the TCM device"
+  0x0001369C  u"TCM Activation"
+  0x000136BE  u"FActivate/Deactivate the TCM device"
+  0x0001370A  u" TCM Force Clear"
+  0x00013732  u"WARNING:Clearing TCM erases all information stored on the TCM. All keys and data encrypted with these keys will be lost!"
+  0x0001382A  u"The Dell Hardware Crypto Accelerator has no owner.\r\n\r\nPlease configure the card using the Data Protection | Encryption or Key Migration Tool."
+  0x0001394C  u"Clear Owner"
+  0x00013968  u"<Clear Application Credentials"
+  0x000141E2  u" Anti-Theft solution is presently Deactivated. Note that the Activate or Disable options will permanently Activate or Disable the feature and no further changes will be allowed.\r\n"
+  0x00014B68  u" Anti-Theft solution is Disabled. You cannot change the setting."
+  0x00015408  u" Anti-Theft solution is Activated. You cannot change the setting."
+  0x00015646  u", is a service designed to help track devices and provide recovery services in the event a device is lost or stolen. Once installed, the Absolute agent communicates with the Absolute Monitoring Center at programmed intervals to provide the tracking service. By installing the agent and activating the service, you consent to the transmission of information between your device and the Absolute Monitoring Center. For customers who have purchased the Absolute service, the firmware Persistence Module checks for the presence and health of Absolute on boot, and restores the functionality in case of agent removal or tampering.\r\nAbsolute, Computrace and Persistence are registered trademarks of Absolute Software Corporation.\r\n\r\nEnabled~22~= Enable the Absolute Persistence and load the firmware Persistence Module.\r\nDisabled~22~= Disable Absolute Persistence. The firmware Persistence Module is not installed.\r\nPermanently Disabled~22~= Permanently disables Absolute Persistence module interface from farther use.\r\n\r\nAbsolute Persistence cannot be disabled if the Absolute Monitoring service is activated. In order to disable the Absolute Persistence setting in BIOS Setup, first deactivate the Absolute Monitoring service.\r\n\r\nWARNING: The 'Permanently Disabled' option can only be selected once. When 'Permanently Disabled' is selected, Absolute Persistence cannot be re-enabled. No further changes to the Enable / Disable state are allowed.\r\n\r\n"
+  0x00016198  u"When enabled, this option will prevent users from entering Setup when an Admin password is set."
+  0x0001625C  u"6Enable Admin Setup Lockout"
+  0x0001629A  u"This field enforces strong passwords. If enabled, Admin and System passwords must contain at least one uppercase character, one lowercase character and be at least 8 characters long. Enabling this feature automatically changes the default minimum password length to 8 characters. Disabling the \"Strong Password\" option after it was previously enabled will return the admin and system password minimum values to the default of 4."
+  0x000165F8  u".Enable Strong Password"
+  0x0001662C  u"&Admin Password Min"
+  0x00016658  u"&Admin Password Max"
+  0x00016684  u"(System Password Min"
+  0x000166B2  u"(System Password Max"
+  0x000166E2  u"These fields control the minimum and maximum number of characters allowed for Admin and System passwords. Changes to these fields are not active until they are committed via the apply button or saving changes before exiting setup. "
+  0x00016A50  u" Management Engine BIOS Extension (CTRL+P/F12).\r\n\r\nEnable ~20~ = User may enter OROM configuration screens via the hotkey. \r\nOne Time Enable ~20~ = User may enter OROM configuration screens via the hotkey on next boot only. After \r\n~22~ next boot the setting will revert to disabled. \r\nDisable ~20~ = User may not enter OROM configuration screens via the hotkey. \r\n"
+  0x00016D30  u"8Allow OROMs Keyboard Access"
+  0x00016D70  u"Enabled"
+  0x00016D84  u" One Time Enable"
+  0x00016DAC  u"Disabled"
+  0x00016DC4  u"PTT On"
+  0x00016DD8  u"PTT On : \r\nThis option lets you control whether the Platform Trust Technology feature (PTT) is visible to the operating system. \r\nNOTE: Disabling this option does not change any settings you have made to the PTT, nor does it delete or change any information or keys you may have stored in the PTT. Changes to this setting take effect immediately. \r\n\r\nClear : \r\nThis setting clears the PTT owner information, and returns the PTT to the default state. Changes to this setting will be latched in BIOS after clicking \"apply\", but will not take effect in the PTT until after exiting the BIOS setup menu. \r\n\r\nPPI Bypass for Clear Command: \r\nThis option controls the PTT Physical Presence Interface (PPI). When enabled, this setting will allow the OS \r\nto skip BIOS PPI user prompts when issuing the Clear command. Changes to this setting take effect immediately. \r\n\r\n"
+  0x00017498  u"JEnable UEFI Capsule Firmware Updates"
+  0x00017656  u" Windows Update\r\nand Linux Vendor Firmware Service (LVFS).\r\n"
+  0x000176D4  u"0SMM Security Mitigation"
+  0x0001770C  u"This option enables or disables additional UEFI SMM Security Mitigation protections. The operating system can use this feature to help protect the secure environment created by virtualization based security. \r\n\r\nEnabling this feature provides additional UEFI SMM Security Mitigation protections. However, this feature may cause compatibility issues or loss of functionality with some legacy tools and applications.\r\n"
+  0x00017A54  u"The SED Block SID Authentication setting controls a mechanism used by the BIOS to block entities from taking ownership of the Self-Encrypting Drive (SED) when the drive does not have a password set. The Block SID interface allows external SED management software to request that the BIOS leave the SED password provisioning access (Block SID) temporarily unlocked.  This setting is provided to help with older SED management software that is not compatible with the TCG Block SID interface. See the TCG PPI Specification and the TCG Block SID Specification for more details on Block SID Authentication.\r\nWhen enabled, the SED Block SID Authentication is enabled on the drive. The SED drive is locked prior to booting to the operating system. This prevents external software from setting passwords on the drive without authorization. External SED management software manages the drive password via a Block SID PPI request to the BIOS. Enabling this setting provides additional safeguards when the drive ownership is not being managed by external software, or if the drive does not have a password set. \r\nWhen disabled, the SED Block SID Authentication is disabled. The SED drive is left in the unlocked state after booting. External SED management software can manage the drive passwords and take ownership of the SED drive without an unlock request to BIOS via a Block SID PPI interface request.\r\n"
+  0x00018544  u"JPPI Bypass for SED Block SID Command"
+  0x00018596  u"This setting controls the SED Block SID Physical Presence Interface (PPI). When external SED management software sends a request to BIOS to leave the drive in an unlocked state, this setting controls whether the user must acknowledge and approve the request. The drive will be left in the unlocked state (Block SID disabled) until the system is reset. See the TCG PPI Specification for more details on Block SID PPI Request.\r\nWhen enabled, requests from external SED management software to leave the drive in an unlocked state temporarily When disabled, the customer is prompted to acknowledge the request before external software can take ownership and / or manage the SED drive. This setting provides extra safeguards against software taking ownership of the SED.\r\n\r\n"
+  0x00018B9E  u"4Enable UEFI Network Stack"
+  0x00018BDA  u"Serial Port"
+  0x00018C40  u"0Enable USB Boot Support"
+  0x00018C80  u"Thunderbolt"
+  0x00018CA4  u"@Enable Thunderbolt Boot Support"
+  0x00018CF2  u"tEnable Thunderbolt (and PCIe behind TBT) Pre-boot Modules"
+  0x00018D74  u":Security Level (Thunderbolt)"
+  0x00018DC0  u"No Security"
+  0x00018DDC  u"&User Authorization"
+  0x00018E0A  u"Secure Connect"
+  0x00018E2C  u"4Display Port and USB Only"
+  0x00018E68  u"Auto Switch"
+  0x00018E86  u"This option configures the method used by the Thunderbolt controller to perform PCIe device enumeration.\r\n\r\nAuto Switch~24~= The BIOS will automatically switch between BIOS Assist and Native Thunderbolt PCIe device enumeration modes to get all benefits of the installed OS.\r\nNative Enumeration~24~= The BIOS will program the Thunderbolt controller to Native mode. (Auto Switching is disabled)\r\nBIOS Assist Enumeration~24~= The BIOS will program the Thunderbolt controller to BIOS Assist mode. (Auto Switching is disabled)\r\nA reboot is required for these changes to take effect.\r\n\r\n"
+  0x00019316  u",BIOS Enumeration Mode"
+  0x00019350  u"&Native Enumeration"
+  0x0001937C  u"0BIOS Assist Enumeration"
+  0x000193B4  u"SATA Operation"
+  0x000195C2  u" Rapid Restore Technology).\r\n"
+  0x00019614  u"RAID On"
+  0x0001962A  u"Disabled"
+  0x00019642  u"This field controls whether hard drive errors for integrated drives are reported during system startup.  This \r\ntechnology is part of the SMART (Self Monitoring Analysis and Reporting Technology) specification.\r\n"
+  0x000197F0  u".Enable SMART Reporting"
+  0x00019824  u"0Enable Unobtrusive Mode"
+  0x0001985C  u"When enabled, pressing Fn+B will toggle light emissions from the system.\r\n\r\nDefault is Disabled\r\n"
+  0x00019924  u"BEnable Fingerprint Reader Device"
+  0x0001996C  u"bEnable or disable the Fingerprint Reader Device."
+  0x000199D4  u"2Enable External USB Port"
+  0x00019A16  u"$Enable Microphone"
+  0x00019A4A  u"0Enable Internal Speaker"
+  0x00019A8A  u"&Enable eSATA Ports"
+  0x00019AC2  u"Enable Camera"
+  0x00019AE2  u"4Enable User-Facing Camera"
+  0x00019B26  u"6Enable World-Facing Camera"
+  0x00019B6C  u"NEnable Hard Drive Free Fall Protection"
+  0x00019BCC  u"Enable Audio"
+  0x00019BEC  u"This field enables or disables the integrated audio controller.\r\n\r\nUncheck 'Enable Audio' to completely disable the audio controller, including all of its functions.\r\n\r\n"
+  0x00019D44  u"(Disable OSD Buttons"
+  0x00019D74  u"This field allows the user to disable the OSD (On-Screen Display) buttons on their All-In-One system. When this field is checked, pressing the system's OSD buttons will have no effect. When this field is un-checked, the OSD buttons will behave normally."
+  0x00019F74  u",Keyboard Illumination"
+  0x00019FA8  u"This field lets you choose the operating mode of the keyboard illumination feature.\r\n\r\nThe keyboard will automatically illuminate when the internal keyboard, touchpad, or \r\npointstick are used.\r\n\r\nThe <Fn + F5> hotkey can also be used to change this setting during normal\r\nsystem operation.\r\n\r\nThe keyboard illumination brightness level can be set from 0% to 100%.\r\n\r\nDisabled~21~= The keyboard illumination will always be off or 0%.\r\n\r\nDim~21~= Enable the keyboard illumination feature at 50% brightness\r\n~21~    level.\r\nBright~21~= Enable the keyboard illumination feature at 100% brightness\r\n~21~    level.\r\n"
+  0x0001A476  u"Disabled"
+  0x0001A49C  u"Bright"
+  0x0001A4AE  u" DellCoreService"
+  0x0001A4D6  u"This Token/Attribute controls boot time creation of an SSDT ACPI Virtual Device Table\r\nEnabled:  Creates SSDT Table at boot time\r\nDisabled:   No SSDT Table is created.  (Default State)."
+  0x0001A650  u"Touchscreen"
+  0x0001A66E  u"This field controls whether the touchscreen is enabled or disabled.\r\n"
+  0x0001A6FE  u",Enable USB PowerShare"
+  0x0001A732  u"This option configures the USB PowerShare feature behavior.\r\n\r\nThis feature is intended to allow users to power or charge external devices, such as phones and portable music players, using the stored system battery power through the USB PowerShare port on the notebook, while the notebook is in a sleep state (S3/S4/S5).\r\n\r\nWhen this option is set to Disabled, the USB PowerShare feature will be turned off and devices attached to the USB PowerShare port will not be powered or charged when the system is in a sleep state (S3/S4/S5).\r\nWhen this option is set to Enabled, the USB PowerShare feature will be turned on. On AC, USB PowerShare charging in S3/S4/S5 is supported. On battery, USB PowerShare will only charge devices when the system is in the S3 state. When on battery and in the S3 state, the system will only allow the battery to discharge down to 50%, at which point the USB PowerShare feature will be automatically disabled."
+  0x0001AE9E  u"\\This option is to enable/disable SATA drive 0"
+  0x0001AF14  u"\\This option is to enable/disable SATA drive 1"
+  0x0001AF8A  u"\\This option is to enable/disable SATA drive 2"
+  0x0001B000  u"\\This option is to enable/disable SATA drive 3"
+  0x0001B076  u"\\This option is to enable/disable SATA drive 4"
+  0x0001B0EC  u"\\This option is to enable/disable SATA drive 5"
+  0x0001B172  u"\\This option is to enable/disable M.2 PCIe SSD"
+  0x0001B1D6  u"M.2 PCIe SSD-1"
+  0x0001B1F8  u"dThis option is to enable/disable 2nd M.2 PCIe SSD"
+  0x0001B262  u"BKeyboard Backlight Timeout on AC"
+  0x0001B2AC  u"This feature defines the timeout value for the keyboard backlight when an AC adapter is plugged\r\n into the system. The keyboard backlight timeout value is only in effect when the backlight is enabled.\r\n If the selection of 'Never' is made, the backlight will stay on at all times when the system has\r\n AC adapter plugged in.\r\n"
+  0x0001B53E  u"LKeyboard Backlight Timeout on Battery"
+  0x0001B592  u"This feature defines the timeout value for the keyboard backlight when the system is running only\r\non battery power. The keyboard backlight timeout value is only in effect when the backlight is enabled.\r\nIf the selection of 'Never' is made, the backlight will stay on at all times when the system is running\r\non battery power.\r\n"
+  0x0001B82A  u"Never"
+  0x0001B83C  u"5 seconds"
+  0x0001B856  u"10 seconds"
+  0x0001B872  u"15 seconds"
+  0x0001B88E  u"30 seconds"
+  0x0001B8AA  u"1 minute"
+  0x0001B8C2  u"5 minutes"
+  0x0001B8DC  u"15 minutes"
+  0x0001B8F8  u"This field allows users to enable and disable the Watchdog Timer feature."
+  0x0001B990  u".Watchdog Timer Support"
+  0x0001B9D6  u"Minimal"
+  0x0001B9EC  u"Thorough"
+  0x0001BA04  u"Fn Key Only"
+  0x0001BA22  u"By Numlock"
+  0x0001BA3E  u"0 seconds"
+  0x0001BA58  u"5 seconds"
+  0x0001BA72  u"10 seconds"
+  0x0001BA8E  u"This option lets you choose whether the system displays warning messages when you use certain power adapters. The system displays these messages if you attempt to use a power adapter that has too little capacity for your configuration."
+  0x0001BC6A  u"0Enable Adapter Warnings"
+  0x0001BCA0  u"$Keypad (Embedded)"
+  0x0001BCCC  u"This option lets you choose one of two methods to enable the keypad that is embedded in the internal keyboard.\r\n\r\nFn Key Only~15~= The keypad is only enabled when you hold down the Fn key.\r\nBy Num Lock~15~= The keypad is enabled when 1) the Numlock LED is on, and 2) no external keyboard is\r\n~16~ attached. Note that the system might not notice immediately when an external keyboard is \r\n~16~ detached.\r\n\r\nNOTE: When Setup is running, this option has no effect, Setup works in the \"Fn Key Only\" mode.\r\n"
+  0x0001C0C0  u"This option specifies whether the NumLock function should be enable when the system boots."
+  0x0001C17C  u"Enable Numlock"
+  0x0001C1A0  u"Fn Lock"
+  0x0001C1B6  u"Fn Lock Mode"
+  0x0001C1D6  u"Fn Lock Hot Key:\r\nEnabled lets the hot key combination <Fn>+<Esc> toggle the primary behavior of F1-F12, between their standard and secondary functions. If unchecked, you cannot dynamically toggle the primary behavior of these keys.\r\n\r\nTherefore the Fn Key Mode shown below will remain fixed during the session.\r\n\r\n\r\nFn Lock Mode:\r\n\r\nLock Mode Disable/Standard~33~= The F1-F12 keys behave as function keys. Holding <Fn> is required to\r\n~35~access their secondary functions.\r\n\r\nLock Mode Enable/Secondary~33~= The F1-F12 keys control the secondary functions. <Fn> is required to\r\n ~35~access the standard functions."
+  0x0001C6AA  u"Fastboot"
+  0x0001C6C2  u"This option can speed up the boot process by bypassing some compatibility steps.\r\n\r\nMinimal~11~= Reduces boot time by skipping certain hardware and configuration initialization during boot.\r\nThorough~11~= Performs complete hardware and configuration initialization during boot.\r\nAuto~11~= Allows the BIOS to decide configuration initialization performed during boot.\r\n"
+  0x0001C9A8  u",Extend BIOS POST Time"
+  0x0001C9DC  u"This option creates an additional pre-boot delay.\r\nThis allows the user to see POST status messages.\r\n"
+  0x0001CAB0  u"This option will display full screen logo if your image match screen resolution"
+  0x0001CB54  u"0Enable Full Screen Logo"
+  0x0001CBFA  u" Fast Call for Help."
+  0x0001CC44  u" Fast Call for Help"
+  0x0001CC70  u"(Warnings and Errors"
+  0x0001CCA0  u"The Warnings and Errors options cause the boot process to only pause when warnings or errors are detected, rather than stop, prompt and wait for user input.  This feature is valuable in situations where the system may be remotely managed and therefore has no locally connected keyboard or console available for a user to respond; for example, in a headless configuration.\r\n\r\nUsers may select to have the Power On Self-Test (POST) process either a) stop, prompt and wait for user input when warnings or errors are detected, or b) continue when warnings are detected but pause on errors, or c) continue when either warnings or errors are detected during the POST process.\r\n\r\nNote that errors deemed critical to the operation of the system hardware will always halt the system."
+  0x0001D2B2  u"*Continue on Warnings"
+  0x0001D2E2  u"@Continue on Warnings and Errors"
+  0x0001D328  u"<Prompt on Warnings and Errors"
+  0x0001D36A  u"2MAC Address Pass-Through"
+  0x0001D3A4  u"This feature replaces the external NIC MAC address (in a supported dock or dongle) with the selected \r\nMAC address from the system. The default option is to use the Passthrough MAC Address."
+  0x0001D526  u"This feature replaces the external NIC MAC address (in a supported dock or dongle) with the selected\r\nMAC address from the system. The default option is to use the Passthrough MAC Address.\r\n\r\nWhen the Integrated NIC option is selected, we recommend one of the following:\r\n  - Disable the integrated NIC in the BIOS to prevent any issues from multiple NICs\r\n    on the network with identical MAC addresses.\r\n  - If the Integrated NIC cannot be disabled, do not connect it to the same network as your dock\r\n    or USB Ethernet dongle."
+  0x0001D954  u"4System Unique MAC Address"
+  0x0001D98E  u":Integrated NIC 1 MAC Address"
+  0x0001D9CE  u":Enable Dock Warning Messages"
+  0x0001DA0E  u"PEnable or disable dock warning messages"
+  0x0001DA66  u"This option specifies whether the MEBx Hotkey function should be enabled when the system boots."
+  0x0001DB2A  u"&Enable MEBx Hotkey"
+  0x0001DB56  u"*Intel AMT Capability"
+  0x0001DB88  u"Enabled"
+  0x0001DB9C  u"*Restrict MEBx Access"
+  0x0001DBCE  u"Disabled"
+  0x0001DBE6  u"Please note without Admin password set, there will be restrictions in enabling AMT again.\r\n\r\nDisabled~22~= Intel Active Management Technology is disabled, MEBx will not be available\r\n~24~in pre-boot. Once disabled, Intel Active Management Technology can only be\r\n~24~enabled via BIOS. If the Intel AMT is already provisioned, AMT cannot be\r\n~24~disabled.(Unprovisioning AMT is required first to disable AMT)\r\nEnabled~22~= Intel Active Management Technology is enabled, MEBx will be available\r\n~24~via F12 menu and customer can provision AMT. MEBx is not accessible if OROM\r\n~24~Keyboard Access is disabled.\r\nRestrict MEBx Access~22~= Intel Active Management Technology is enabled, MEBx will not be available\r\n~24~in pre-boot and customer can provision AMT from OS.\r\n"
+  0x0001E1EA  u"Please note without Admin password set, there will be restrictions in enabling AMT again.\r\n\r\nEnabled~22~= Intel Active Management Technology is enabled, MEBx will be available\r\n~24~via F12 menu and customer can provision AMT. MEBx is not accessible if OROM\r\n~24~Keyboard Access is disabled.\r\nRestrict MEBx Access~22~= Intel Active Management Technology is enabled, MEBx will not be available\r\n~24~in pre-boot and customer can provision AMT from OS.\r\n"
+  0x0001E574  u"6Auto OS Recovery Threshold"
+  0x0001E5B2  u"The Auto OS Recovery Threshold setup option controls the automatic boot flow for SupportAssist System Resolution Console and for Dell OS Recovery Tool.  If the primary operating system experiences consecutive boot failures, and if the count of boot failures is greater than or equal to the value of the Auto OS Recovery Threshold setup option then the system will boot to the SupportAssist System Resolution Console or Dell OS Recovery Tool, if enabled, for remediation.  If Auto OS Recovery Threshold is set to 0ff then all automatic boot flow for SupportAssist System Resolution Console and for Dell OS Recovery Tool will be disabled."
+  0x0001EADC  u"4SupportAssist OS Recovery"
+  0x0001EB18  u"The SupportAssist OS Recovery option will enable or disable the boot flow for SupportAssist OS Recovery tool in the event of certain system errors.  If the SupportAssist OS Recovery setup option is set to disabled then all automatic boot flow for SupportAssist OS Recovery tool will be disabled."
+  0x0001ED6C  u"8SupportAssist Support Level"
+  0x0001EDAC  u"BIOSConnect"
+  0x0001EDCA  u"BIOSConnect enable or disable cloud Service OS upon absence of Local OS Recovery"
+  0x0001EE70  u"\"Service OS Clear"
+
+── ASCII STRINGS (narrow) ───────────────────────────────────────────
+  0x00000BA0  "EFI_LOAD_ERROR"
+  0x00000BB9  "EFI_INVALID_PARAMETER"
+  0x00000BD2  "EFI_UNSUPPORTED"
+  0x00000BEB  "EFI_BAD_BUFFER_SIZE"
+  0x00000C04  "EFI_BUFFER_TOO_SMALL"
+  0x00000C1D  "EFI_NOT_READY"
+  0x00000C36  "EFI_DEVICE_ERROR"
+  0x00000C4F  "EFI_WRITE_PROTECTED"
+  0x00000C68  "EFI_OUT_OF_RESOURCES"
+  0x00000C81  "EFI_VOLUME_CORRUPTED"
+  0x00000C9A  "EFI_VOLUME_FULL"
+  0x00000CB3  "EFI_NO_MEDIA"
+  0x00000CCC  "EFI_MEDIA_CHANGED"
+  0x00000CE5  "EFI_NOT_FOUND"
+  0x00000CFE  "EFI_ACCESS_DENIED"
+  0x00000D17  "EFI_NO_RESPONSE"
+  0x00000D30  "EFI_NO_MAPPING"
+  0x00000D49  "EFI_TIMEOUT"
+  0x00000D62  "EFI_NOT_STARTED"
+  0x00000D7B  "EFI_ALREADY_STARTED"
+  0x00000D94  "EFI_ABORTED"
+  0x00000DAD  "EFI_ICMP_ERROR"
+  0x00000DC6  "EFI_TFTP_ERROR"
+  0x00000DDF  "EFI_PROTOCOL_ERROR"
+  0x00000DF8  "EFI_INCOMPATIBLE_VERSION"
+  0x00000E11  "EFI_SECURITY_VIOLATION"
+  0x00000E2A  "EFI_CRC_ERROR"
+  0x00000E43  "EFI_END_OF_MEDIA"
+  0x00000E5C  "EFI_UNDEFINED_29"
+  0x00000E75  "EFI_UNDEFINED_30"
+  0x00000E8E  "EFI_END_OF_FILE"
+  0x00000EA7  "EFI_INVALID_LANGUAGE"
+  0x00000EC0  "EFI_COMPROMISED_DATA"
+  0x00000EE0  "EFI_INTERRUPT_PENDING"
+  0x00000EF9  "EFI_REQUEST_UNLOAD_IMAGE"
+  0x00000F12  "EFI_NOT_AVAILABLE_YET"
+  0x00000F30  "EFI_DBE_EOF"
+  0x00000F49  "EFI_DBE_BOF"
+  0x00000F70  "EFI_WARN_UNKNOWN_GLYPH"
+  0x00000F8A  "EFI_WARN_DELETE_FAILURE"
+  0x00000FA4  "EFI_WARN_WRITE_FAILURE"
+  0x00000FBE  "EFI_WARN_BUFFER_TOO_SMALL"
+  0x00000FE0  "EFI_WARN_INTERRUPT_SOURCE_PENDING"
+  0x00001003  "EFI_WARN_INTERRUPT_SOURCE_QUIESCED"
+  0x00001028  "Status Code"
+  0x00001038  "... DEBUG BUFFER OVERFLOW!!!\n"
+  0x000060E5  "Setup"
+  0x0000611B  "DellBrightnessValue"
+  0x00006142  "SecureBootSetup"
+  0x00006165  "DellSecureBootMode"
+  0x00006189  "k\rDellPassword"
+
+── NVRAM / VARIABLE GUID CANDIDATES ─────────────────────────────────
+  0x000060D4  [KNOWN GUID] EC87D643-EBA4-4BB5-A1E5-3F3E36B20DA9
+  0x0000610A  [KNOWN GUID] EC87D643-EBA4-4BB5-A1E5-3F3E36B20DA9
+
+── IMPORTS & EXTERNAL REFS ──────────────────────────────────────────
+
+  -- Named/thunk functions matching UEFI services --
+
+── CALL GRAPH FROM ENTRY POINT (depth 2) ────────────────────────────
+  Entry: 0x000002A0  entry
+    0x00000900  FUN_00000900
+      0x000003B8  FUN_000003b8
+    0x000004A0  FUN_000004a0
+      0x000004E4  FUN_000004e4
+    0x00000454  FUN_00000454
+      0x00000390  FUN_00000390
+      0x000004B0  FUN_000004b0
+      0x000003B8  FUN_000003b8
+
+── DECOMPILED FUNCTIONS ─────────────────────────────────────────────
+  Total functions: 13
+
+
+┌─ 0x000002A0  entry  (2 params)
+│
+│  
+│  /* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+│  
+│  longlong entry(undefined8 param_1,longlong param_2)
+│  
+│  {
+│    longlong lVar1;
+│    
+│    DAT_0001ef30 = *(undefined8 *)(param_2 + 0x60);
+│    DAT_0001ef20 = param_1;
+│    _DAT_0001ef28 = param_2;
+│    FUN_00000454();
+│    FUN_00000900();
+│    if (DAT_0001f078 == 0) {
+│      DAT_0001f080 = *(longlong *)(param_2 + 0x60);
+│      _DAT_0001f088 = *(undefined8 *)(param_2 + 0x58);
+│      DAT_0001f078 = param_2;
+│      _DAT_0001f090 = param_1;
+│    }
+│    lVar1 = (**(code **)(DAT_0001f080 + 0xc0))(0xb78,&DAT_00001110);
+│    if (lVar1 < 0) {
+│      FUN_000004a0();
+│    }
+│    return lVar1;
+│  }
+└─────────────────────────────────────────────────────────────────────
+
+┌─ 0x00000350  FUN_00000350  (2 params)
+│  Called from: 0x00000380(FUN_00000380) 
+│
+│  
+│  undefined8 FUN_00000350(undefined8 param_1,undefined8 param_2)
+│  
+│  {
+│    longlong lVar1;
+│    undefined8 local_res18 [2];
+│    
+│    lVar1 = (**(code **)(DAT_0001ef30 + 0x40))(4,param_2,local_res18);
+│    if (lVar1 < 0) {
+│      local_res18[0] = 0;
+│    }
+│    return local_res18[0];
+│  }
+└─────────────────────────────────────────────────────────────────────
+
+┌─ 0x00000380  FUN_00000380  (1 params)
+│  Called from: 0x000003B8(FUN_000003b8) 
+│
+│  
+│  void FUN_00000380(undefined8 param_1)
+│  
+│  {
+│    FUN_00000350(4,param_1);
+│    return;
+│  }
+└─────────────────────────────────────────────────────────────────────
+
+┌─ 0x00000390  FUN_00000390  (1 params)
+│  Called from: 0x00000454(FUN_00000454) 
+│
+│  
+│  longlong FUN_00000390(longlong param_1)
+│  
+│  {
+│    *(longlong *)param_1 = param_1;
+│    *(longlong *)(param_1 + 8) = param_1;
+│    return param_1;
+│  }
+└─────────────────────────────────────────────────────────────────────
+
+┌─ 0x0000039C  FUN_0000039c  (2 params)
+│  Called from: 0x000003B8(FUN_000003b8) 
+│
+│  
+│  longlong FUN_0000039c(longlong param_1,longlong *param_2)
+│  
+│  {
+│    undefined8 *puVar1;
+│    
+│    *param_2 = param_1;
+│    puVar1 = *(undefined8 **)(param_1 + 8);
+│    param_2[1] = (longlong)puVar1;
+│    *puVar1 = param_2;
+│    *(longlong **)(param_1 + 8) = param_2;
+│    return param_1;
+│  }
+└─────────────────────────────────────────────────────────────────────
+
+┌─ 0x000003B4  FUN_000003b4  (0 params)
+│  Called from: 0x000003B8(FUN_000003b8) 
+│
+│  
+│  undefined1 FUN_000003b4(void)
+│  
+│  {
+│    return 0;
+│  }
+└─────────────────────────────────────────────────────────────────────
+
+┌─ 0x000003B8  FUN_000003b8  (2 params)
+│  Called from: 0x00000900(FUN_00000900) 0x00000454(FUN_00000454) 
+│
+│  
+│  void FUN_000003b8(undefined8 param_1,undefined4 param_2)
+│  
+│  {
+│    undefined8 uVar1;
+│    char cVar2;
+│    longlong *plVar3;
+│    undefined4 local_18 [4];
+│    
+│    plVar3 = (longlong *)FUN_00000380(0x25);
+│    if (plVar3 != (longlong *)0x0) {
+│      *(undefined1 *)(plVar3 + 2) = 1;
+│      uVar1 = DAT_0001ef20;
+│      *(undefined4 *)((longlong)plVar3 + 0x19) = param_2;
+│      *(undefined8 *)((longlong)plVar3 + 0x1d) = param_1;
+│      *(undefined8 *)((longlong)plVar3 + 0x11) = uVar1;
+│      FUN_0000039c(DAT_0001ef08,plVar3);
+│      cVar2 = FUN_000003b4();
+│      if (cVar2 != '\0') {
+│        FUN_0000050c((longlong)plVar3,(undefined8 *)0x0,(undefined2 *)0x0,(undefined2 *)0x0,
+│                     (undefined4 *)0x0,(undefined2 *)0x0,(undefined8 *)0x0,local_18,(undefined8 *)0x0,
+│                     (undefined4 *)0x0);
+│      }
+│    }
+│    return;
+│  }
+└─────────────────────────────────────────────────────────────────────
+
+┌─ 0x00000454  FUN_00000454  (0 params)
+│  Called from: 0x000002A0(entry) 
+│
+│  
+│  undefined8 FUN_00000454(void)
+│  
+│  {
+│    longlong lVar1;
+│    
+│    lVar1 = (**(code **)(DAT_0001ef30 + 0x40))(4,0x10,&DAT_0001ef08);
+│    if (-1 < lVar1) {
+│      FUN_00000390(DAT_0001ef08);
+│      FUN_000003b8(0xab0,_data);
+│      FUN_000004b0();
+│    }
+│    return 0;
+│  }
+└─────────────────────────────────────────────────────────────────────
+
+┌─ 0x000004A0  FUN_000004a0  (0 params)
+│  Called from: 0x000002A0(entry) 
+│
+│  
+│  undefined8 FUN_000004a0(void)
+│  
+│  {
+│    FUN_000004e4();
+│    return 0;
+│  }
+└─────────────────────────────────────────────────────────────────────
+
+┌─ 0x000004B0  FUN_000004b0  (0 params)
+│  Called from: 0x000004E4(FUN_000004e4) 0x00000454(FUN_00000454) 
+│
+│  
+│  void FUN_000004b0(void)
+│  
+│  {
+│    if (DAT_0001ef00 == 0) {
+│      (**(code **)(DAT_0001ef30 + 0x140))(0xb88,0,&DAT_0001ef00);
+│    }
+│    return;
+│  }
+└─────────────────────────────────────────────────────────────────────
+
+┌─ 0x000004E4  FUN_000004e4  (0 params)
+│  Called from: 0x000004A0(FUN_000004a0) 
+│
+│  
+│  void FUN_000004e4(void)
+│  
+│  {
+│    longlong lVar1;
+│    
+│    lVar1 = FUN_000004b0();
+│    if (-1 < lVar1) {
+│      (**(code **)(DAT_0001ef00 + 9))(DAT_0001ef00,DAT_0001ef08);
+│    }
+│    return;
+│  }
+└─────────────────────────────────────────────────────────────────────
+
+┌─ 0x0000050C  FUN_0000050c  (10 params)
+│  Called from: 0x000003B8(FUN_000003b8) 
+│
+│  
+│  void FUN_0000050c(longlong param_1,undefined8 *param_2,undefined2 *param_3,undefined2 *param_4,
+│                   undefined4 *param_5,undefined2 *param_6,undefined8 *param_7,undefined4 *param_8,
+│                   undefined8 *param_9,undefined4 *param_10)
+│  
+│  {
+│    char cVar1;
+│    short sVar2;
+│    undefined8 uVar3;
+│    undefined8 *puVar4;
+│    short *psVar5;
+│    longlong lVar6;
+│    short *psVar7;
+│    char *pcVar8;
+│    
+│    if ((param_1 != 0) &&
+│       (pcVar8 = (char *)(*(longlong *)(param_1 + 0x1d) + 0x10),
+│       pcVar8 < (char *)((ulonglong)*(uint *)(param_1 + 0x19) + *(longlong *)(param_1 + 0x1d)))) {
+│      do {
+│        lVar6 = 0;
+│        if (*pcVar8 == -1) {
+│          return;
+│        }
+│        cVar1 = *pcVar8;
+│        if (cVar1 == '\x01') {
+│          if (param_5 != (undefined4 *)0x0) {
+│            *param_5 = *(undefined4 *)(pcVar8 + 3);
+│          }
+│        }
+│        else if (cVar1 == '\x02') {
+│          if (param_6 != (undefined2 *)0x0) {
+│            *param_6 = *(undefined2 *)(pcVar8 + 3);
+│          }
+│        }
+│        else if (cVar1 == '\x03') {
+│          if (param_3 != (undefined2 *)0x0) {
+│            *param_3 = *(undefined2 *)(pcVar8 + 3);
+│          }
+│        }
+│        else if (cVar1 == '\x04') {
+│          if (param_4 != (undefined2 *)0x0) {
+│            *param_4 = *(undefined2 *)(pcVar8 + 3);
+│          }
+│        }
+│        else if (cVar1 == '\x05') {
+│          if (param_9 != (undefined8 *)0x0) {
+│            psVar7 = (short *)(pcVar8 + 3);
+│            sVar2 = *psVar7;
+│            psVar5 = psVar7;
+│            while (sVar2 != 0) {
+│              psVar5 = psVar5 + 1;
+│              lVar6 = lVar6 + 1;
+│              sVar2 = *psVar5;
+│            }
+│            lVar6 = (**(code **)(DAT_0001ef30 + 0x40))(4,lVar6 * 2 + 2);
+│            if ((-1 < lVar6) && (psVar5 = (short *)*param_9, psVar5 != (short *)0x0)) {
+│              for (; *psVar7 != 0; psVar7 = psVar7 + 1) {
+│                *psVar5 = *psVar7;
+│                psVar5 = psVar5 + 1;
+│              }
+│  LAB_000006b4:
+│              *psVar5 = 0;
+│            }
+│          }
+│        }
+│        else if (cVar1 == '\x06') {
+│          if (param_7 != (undefined8 *)0x0) {
+│            psVar7 = (short *)(pcVar8 + 3);
+│            sVar2 = *psVar7;
+│            psVar5 = psVar7;
+│            while (sVar2 != 0) {
+│              psVar5 = psVar5 + 1;
+│              lVar6 = lVar6 + 1;
+│              sVar2 = *psVar5;
+│            }
+│            lVar6 = (**(code **)(DAT_0001ef30 + 0x40))(4,lVar6 * 2 + 2);
+│            if ((-1 < lVar6) && (psVar5 = (short *)*param_7, psVar5 != (short *)0x0)) {
+│              for (; *psVar7 != 0; psVar7 = psVar7 + 1) {
+│                *psVar5 = *psVar7;
+│                psVar5 = psVar5 + 1;
+│              }
+│              goto LAB_000006b4;
+│            }
+│          }
+│        }
+│        else if (cVar1 == '\a') {
+│          if (param_2 != (undefined8 *)0x0) {
+│            psVar7 = (short *)(pcVar8 + 3);
+│            sVar2 = *psVar7;
+│            psVar5 = psVar7;
+│            while (sVar2 != 0) {
+│              psVar5 = psVar5 + 1;
+│              lVar6 = lVar6 + 1;
+│              sVar2 = *psVar5;
+│            }
+│            lVar6 = (**(code **)(DAT_0001ef30 + 0x40))(4,lVar6 * 2 + 2);
+│            if ((-1 < lVar6) && (psVar5 = (short *)*param_2, psVar5 != (short *)0x0)) {
+│              for (; *psVar7 != 0; psVar7 = psVar7 + 1) {
+│                *psVar5 = *psVar7;
+│                psVar5 = psVar5 + 1;
+│              }
+│              goto LAB_000006b4;
+│            }
+│          }
+│        }
+│        else {
+│          puVar4 = (undefined8 *)param_8;
+│          if (((cVar1 == '\b') || (puVar4 = (undefined8 *)param_10, cVar1 == '\n')) &&
+│             (puVar4 != (undefined8 *)0x0)) {
+│            uVar3 = *(undefined8 *)(pcVar8 + 0xb);
+│            *puVar4 = *(undefined8 *)(pcVar8 + 3);
+│            puVar4[1] = uVar3;
+│          }
+│        }
+│        pcVar8 = pcVar8 + (ulonglong)*(ushort *)(pcVar8 + 1) + 3;
+│      } while (pcVar8 < (char *)((ulonglong)*(uint *)(param_1 + 0x19) + *(longlong *)(param_1 + 0x1d))
+│              );
+│    }
+│    return;
+│  }
+└─────────────────────────────────────────────────────────────────────
+
+┌─ 0x00000900  FUN_00000900  (0 params)
+│  Called from: 0x000002A0(entry) 
+│
+│  
+│  undefined8 FUN_00000900(void)
+│  
+│  {
+│    FUN_000003b8(0xb20,DAT_00000b10);
+│    return 0;
+│  }
+└─────────────────────────────────────────────────────────────────────

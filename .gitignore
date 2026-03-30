@@ -9,9 +9,12 @@ firmware/extracted/pfs/*/
 firmware/extracted/uefi/*/
 firmware/extracted/pe_images/*/
 
-# Ghidra project databases
+# Ghidra project databases (binary db files)
 ghidra_projects/*/
 !ghidra_projects/.gitkeep
+# Track deep_re text analysis outputs
+!ghidra_projects/*/deep_re/
+!ghidra_projects/*/deep_re/*.txt
 
 # Tools (installed separately, not committed)
 /tools/
