@@ -315,6 +315,15 @@ FUN_00003e20(output, ctx);              // SHA-256_Final → 32-byte hash
 
 **Response verification:** PE_0463 `FUN_00001ea4` / `FUN_0000933c`
 
+### CRITICAL CORRECTION: The hash function is MD5, NOT SHA-1
+
+`FUN_00007df8` (previously misidentified as SHA-1) is an **obfuscated MD5** implementation:
+- Only 4 state variables A/B/C/D (MD5) — SHA-1 requires 5
+- Round rotation amounts `7,12,17,22 / 5,9,14,20 / 4,11,16,23 / 6,10,15,21` are the exact MD5 round schedule
+- Output is 16 bytes (MD5=128 bits) — matches the 16 bytes consumed by the 8FC8 verifier
+- Per-round K constants are XOR-obfuscated in `.data` with mask `0x6d2f93a5`
+- Init values `0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476` happen to be identical for both MD5 and SHA-1 first 4 words — this was the source of confusion
+
 **Algorithm (key=0xBF97 / `-0x4069`):**
 ```python
 def compute_8fc8_response(service_tag_7chars):
@@ -323,27 +332,91 @@ def compute_8fc8_response(service_tag_7chars):
     buf[0:7] = sanitize(service_tag_7chars)       # Replace non-printable with '*'
     buf[7:11] = b'BF97'                            # Fixed 4-byte suffix (DAT_0000abb8)
     buf[11:19] = encode_5bit(service_tag_7chars)  # 8-byte 5-bit extraction of service tag
+    # buf[19:23] = zeros (already zeroed)
 
-    # Step 2: SHA-1(buf)
-    sha1_hash = SHA1(buf)  # 20 bytes
+    # Step 2: MD5(buf)  ← CORRECTED from SHA-1
+    md5_hash = MD5(buf)  # 16 bytes
 
-    # Step 3: Map first 16 bytes through lookup table (mod 72)
+    # Step 3: Map all 16 bytes through lookup table (mod 72)
     TABLE = "0Q2drGk99rkQFMxN[Z5y3DGr16h638myIL2rzz2pzcU7JWLJ1EGnqRN4seZPRM2aBXIjbkGZ"
-    response = ''.join(TABLE[b % 72] for b in sha1_hash[:16])
+    response = ''.join(TABLE[b % 72] for b in md5_hash)
     return response  # 16-char response code
 ```
 
-**5-bit encoding (FUN_00007e54):**
-Extracts 8 groups of 5 bits from 7-byte service tag via bit manipulation, then XOR-combines with 5-bit masks.
+**MD5 obfuscation details (FUN_00004db8):**
+- Two loop paths controlled by `DAT_0000a270` / `DAT_0000a268` iteration counts
+- Round order is permuted between the two loops (1→2→3→4 vs 3→4→1→2)
+- K-table constants stored in `.data` section XORed with `0x6d2f93a5` to obscure them
+- Round function pointers passed as `param_3..param_7` (F,G,H,I functions for 4 rounds)
 
-**Alternative lookup tables by key:**
-| Key    | Table (72 chars) |
-|--------|-----------------|
-| 0xBF97 | `0Q2drGk99rkQFMxN[Z5y3DGr16h638myIL2rzz2pzcU7JWLJ1EGnqRN4seZPRM2aBXIjbkGZ` |
-| 0x6FF1 | `08rptBxfbGVMz38IiSoeb360MKcLf4QtBCbWVzmH5wmZUcRR5DZG2xNCEv1nFtzsZB2bw1X0` |
-| 0x1F66 | `0ewr3d4xtUG1ku0BfIp7VFb21OTSno7KDLZYqsJWa6HMgCQR94m65y9Nl5Pvc8AjihE3X2z0` |
-| 0x1D3B | `0BfIUG1kuPvc8A9Nl5DLZYSno7Ka6HMgqsJWm65yCQR94b21OTp7VFX2z0jihE33d4xtrew0` |
-| default | `012345679abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0` |
+**Key validation (FUN_00008070):**
+- Lookup table at `DAT_0000a9c0`, stride 0x18
+- Starts with key `0x8FC8` (-0x7038)
+- Returns 0xff if key NOT in table → keys 0xBF97/0x6FF1/0x1F66/0x1D3B return 0xff
+- Keys in the table (0x8FC8 and others) are dispatched to `FUN_00008e78` instead
+
+**5-bit encoding (FUN_00007e54) — COMPLETE:**
+
+Takes first 5 bytes of service tag, extracts 8 five-bit values, then XOR-maps each through the lookup table:
+```python
+def encode_5bit(service_tag, key=0xBF97):
+    s = bytearray(service_tag[:7])  # sanitize first
+    # Save first 5 bytes at offsets 8-12 (working buffer)
+    b0,b1,b2,b3,b4 = s[0],s[1],s[2],s[3],s[4]
+    # Extract 8 five-bit values from b0..b4 (40 bits → 8×5 bits)
+    v = [0]*8
+    v[0] = b4 & 0x1f
+    v[1] = ((b3 << 3 | b3 >> 5) & 0x11) | (b4 >> 5)
+    v[2] = (b3 >> 2) & 0x1f
+    v[3] = ((b2 & 0x0f) << 1) | (b3 >> 7)
+    v[4] = ((b1 & 0x01) << 4) | (b2 >> 4)
+    v[5] = (b1 >> 1) & 0x1f
+    v[6] = ((b0 & 0x07) << 2) | (b1 >> 6)
+    v[7] = b0 >> 3
+    # For each 5-bit value: XOR mix of the 5 source bytes, then table lookup
+    out = []
+    for vi in v:
+        acc = 0xaa
+        if vi & 0x01: acc ^= b4
+        if vi & 0x02: acc ^= b3
+        if vi & 0x04: acc ^= b2
+        if vi & 0x08: acc ^= b1
+        if vi & 0x10: acc ^= b0
+        out.append(TABLE[acc % 72])
+    return bytes(out)  # 8 output bytes
+```
+
+**Sanitize (FUN_000094e8):** Replace any byte outside ASCII `'!'` (0x21) to `'~'` (0x7e) with `'*'` (0x2a).
+
+### Two-Tier Challenge/Response Architecture
+
+**Path A — Secondary keys (NOT in lookup table, lVar2==0xff from FUN_00008070):**
+- Keys: 0xBF97, 0x6FF1, 0x1F66, 0x1D3B
+- Hash: MD5 only (FUN_00007df8)
+- Input: 23-byte buffer (7-char tag + 4-char key hex + 8-char 5-bit-encoded tag)
+- Output: 16 bytes → each byte mapped through `TABLE[byte % 72]` → 16-char response
+
+**Path B — Primary keys (IN lookup table, dispatched via FUN_00008e78/FUN_00008fc4):**
+- Keys: 0x8FC8 and others in DAT_0000a9c0 table
+- Hash: MD5 (FUN_00008160 with table-configured variant) → SHA-256 (FUN_000080a8)
+- Input: 11 bytes from challenge input + 4-byte key hex code = 15 bytes → MD5 → SHA-256
+- Output: 32 SHA-256 bytes → position-dependent encoding in FUN_00008d20:
+  `out[i] = TABLE[(sha256[i] + sha256[i+0x10]) % 72]` (mixing byte with byte 16 positions later)
+
+**Key codec (FUN_00009504):** Converts key code to 4-char uppercase hex string (e.g., `0x8FC8` → `"8FC8"`)
+
+**Key validation table (DAT_0000a9c0, stride=0x18):**
+- Entry[0]: key `0x8FC8` (-0x7038) — the main Dell BIOS recovery code
+- Entry[i]: `offset+0` = key code (short), `offset+0x08` = variant function pointer, `offset+0x10` = table pointer
+
+**Lookup tables (72 chars each, located in .data):**
+| Key    | Address    | Table (72 chars) |
+|--------|------------|-----------------|
+| 0xBF97 | DAT_0000ab50 | `0Q2drGk99rkQFMxN[Z5y3DGr16h638myIL2rzz2pzcU7JWLJ1EGnqRN4seZPRM2aBXIjbkGZ` |
+| 0x6FF1 | DAT_0000ab00 | `08rptBxfbGVMz38IiSoeb360MKcLf4QtBCbWVzmH5wmZUcRR5DZG2xNCEv1nFtzsZB2bw1X0` |
+| 0x1F66 | DAT_0000aab0 | `0ewr3d4xtUG1ku0BfIp7VFb21OTSno7KDLZYqsJWa6HMgCQR94m65y9Nl5Pvc8AjihE3X2z0` |
+| 0x1D3B | DAT_0000aa60 | `0BfIUG1kuPvc8A9Nl5DLZYSno7Ka6HMgqsJWm65yCQR94b21OTp7VFX2z0jihE33d4xtrew0` |
+| default | DAT_0000aa10 | `012345679abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0` |
 
 ---
 
