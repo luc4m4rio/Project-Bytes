@@ -1,0 +1,8 @@
+{
+  "_comment": "Confirmed CF1B ground-truth pairs. Each was verified to unlock real hardware (typed at the BIOS prompt, submitted with Ctrl+Enter). Add more here (same shape) and re-run reverse_fit.py -- the harness auto-fits once the data is sufficient. system_number is the 7-char service tag + '-CF1B'; password is the exact 16-char answer (case-sensitive).",
+  "suffix": "CF1B",
+  "pairs": [
+    { "system_number": "JY5M453-CF1B", "password": "CcOf06LU5CT6cZaJ" },
+    { "system_number": "6T7GX33-CF1B", "password": "UD6CTOZDUXCCd4EU" }
+  ]
+}
