@@ -1,21 +1,8 @@
-# Firmware files (drop into firmware/input/ manually)
-firmware/input/*.exe
-firmware/input/*.bin
-firmware/input/*.rom
-firmware/input/*.cap
-
-# Extracted output (generated, not tracked)
-firmware/extracted/pfs/*/
-firmware/extracted/uefi/*/
-firmware/extracted/pe_images/*/
-
-# Ghidra project databases
-ghidra_projects/*/
-!ghidra_projects/.gitkeep
-
-# Tools (installed separately, not committed)
-/tools/
-
 # Python cache
 __pycache__/
 *.pyc
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
