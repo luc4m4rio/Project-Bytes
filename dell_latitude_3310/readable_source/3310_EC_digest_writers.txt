@@ -1,0 +1,28 @@
+# Candidate 16-/32-byte output ("digest") writer functions
+# Method: count stores per (function, base register) in the objdump disassembly.
+#   8 word-stores or a 32B fixed span  -> 32-byte writer (SHA-256 digest size)
+#   4 word-stores or a 16B fixed span  -> 16-byte writer
+# NOTE: byte-counts are APPROXIMATE (functions mix store widths/bases and sit in
+# noisy-decode regions). The crypto-engine linkage below is the stronger signal.
+
+== 32-byte writers (candidates) ==
+0xBFD0ADE8   32B fixed-offset span via r15 (also many word stores)  [struct/state or digest]
+0xBFCFB3CC   r0 st.ab x8 (~32B)   CALLS the CRC engine (0xBFCFA44C)   <- CRC-linked 32B producer
+0xBFCFE9B8   r16 st.ab x8 (~32B)
+0xBFCF490C   r0 st.ab x8 (~32B)
+(SHA-256 engine 0xBFD09184 / 0xBFD08A3C, adjacent to K-table 0xBFD084B0,
+ is a 32-byte digest producer by definition.)
+
+== 16-byte writers (candidates) ==
+0xBFD0834C   r16 st.ab x4 (~16B)  IN the SHA region, CALLED BY the SHA driver 0xBFD09184,
+             and itself calls SHA primitive 0xBFD074E0   <- strongest hash-linked 16B producer
+0xBFD0D6A4   r2 st.ab x4 (~16B)   widely called (0xBFD09434/0B8E8/0CAA4/0D4C8)
+0xBFD15C74   r0 st.ab x4 (~16B)
+0xBFD13EA8   r0 st.ab x4 (~16B)
+0xBFD11B38 0xBFD0F084 0xBFD03350 0xBFD01E34 0xBFCFBE48  (r0/r16 st.ab x4)
+0xBFD04AE0   r16 st.ab x5 (~20B)  references the "dellbatterydell" battery-auth data
+
+== relationships ==
+- SHA-256 engine (32B digest): driver 0xBFD09184 -> 16B sub-writer 0xBFD0834C -> SHA prim 0xBFD074E0
+- CRC engine (checksum):       0xBFCFB3CC (32B) -> 0xBFCFA44C ; orchestrator 0xBFCFBA30
+- battery-auth:                0xBFD04AE0 / 0xBFD05200 reference dellbatterydell + VerifyEcSdsaSignature
