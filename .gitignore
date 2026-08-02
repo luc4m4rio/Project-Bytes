@@ -1,0 +1,13 @@
+# Raw vendor SPI dumps / archives are inputs, not committed (large, vendor firmware)
+*.rar
+D8M.bin
+D16M.bin
+16MB_.bin
+*_full_flash.bin
+
+# Local tool installs / scratch
+/opt/
+_ghidra_proj/
+*.elf
+__pycache__/
+*.pyc

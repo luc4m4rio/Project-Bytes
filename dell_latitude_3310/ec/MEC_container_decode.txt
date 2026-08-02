@@ -1,0 +1,27 @@
+Microchip MEC EC firmware container  (Dell Latitude 3310, from D8M.bin flash region 0x1000)
+==============================================================================
+Region size            : 1048576 bytes (0x100000, 1 MiB)
+
+MCHP boot header (offset 0x00):
+  +0x00 Tag            : b'PHCM'  ('MCHP' byte-reversed = Microchip)
+  +0x04 word           : 0x00010000
+  +0x08 Load address   : 0xBFCF0000   <- code is linked/loaded at this VMA
+  +0x0C Entry point    : 0xBFCF0001   (bit0 = flag; real entry 0xBFCF0000)
+  +0x10 Size (units)   : 0x000009B9 (2489)  x 64 = 159296 bytes payload
+  +0x14 Payload offset : 0x00000040   <- executable image starts here in region
+  +0x2C Checksum/sig   : 0x4C844D7A
+
+Derived layout:
+  Executable image     : region[0x40 .. 0x26E80]  (159296 bytes)  -> VMA 0xBFCF0000
+  Image trailer (cksum): region[0x26E80] = 0x414825D8
+  Data block 1         : region[0x34000 .. 0x35A30]
+  Data block 2         : region[0x36000 .. 0x3766F]
+  0xFF padding         : region[0x38000 .. 0x100000] (unused)
+
+Embedded version/build info:
+  0x0146 Build date  : '06/09/20'
+  0x0150 EC version  : '01.00.03'
+  0x015A Build hash  : '54f7e6206'
+  0x0164 Copyright   : 'Copyright 1996-2020 Dell Inc.'
+
+CPU architecture        : ARCompact (ARCv1), little-endian, 32-bit  (Synopsys ARC / Microchip MEC core)

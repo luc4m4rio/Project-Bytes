@@ -1,0 +1,27 @@
+File: D8M.bin
+Size: 8388608 bytes (0x800000, 8 MiB)
+Descriptor base: 0x0
+FLMAP0=0x00040103 FLMAP1=0x45100208 FLMAP2=0x00340330
+FCBA=0x30  NumComponents=2  FRBA=0x40  FMBA=0x80
+FLCOMP=0x1254FC54 comp0_density=8MiB
+
+Idx Name                             Base        End         Size      FLREG  Present
+------------------------------------------------------------------------------------------
+  0 Flash Descriptor           0x00000000 0x00000FFF         4096 0x00000000  YES
+  1 BIOS                       0x00800000 0x017FFFFF     16777216 0x17FF0800  YES
+  2 Intel ME                   0x00101000 0x007FFFFF      7335936 0x07FF0101  YES
+  3 GbE                        0x07FFF000         --            0 0x00007FFF  -
+  4 Platform Data (PDR)        0x07FFF000         --            0 0x00007FFF  -
+  5 Device Expansion 1         0x07FFF000         --            0 0x00007FFF  -
+  6 Secondary BIOS (BIOS2)     0x07FFF000         --            0 0x00007FFF  -
+  7 Microcode                  0x07FFF000         --            0 0x00007FFF  -
+  8 EC (Embedded Controller)   0x00001000 0x00100FFF      1048576 0x01000001  YES
+  9 Device Expansion 2         0x07FFF000         --            0 0x00007FFF  -
+ 10 IE                         0x07FFF000         --            0 0x00007FFF  -
+ 11 10GbE 0                    0x07FFF000         --            0 0x00007FFF  -
+ 12 10GbE 1                    0x07FFF000         --            0 0x00007FFF  -
+ 13 Reserved 13                0x07FFF000         --            0 0x00007FFF  -
+ 14 Reserved 14                0x07FFF000         --            0 0x00007FFF  -
+ 15 PTT / Reserved 15          0x07FFF000         --            0 0x00007FFF  -
+
+>>> EC region: base=0x1000 end=0x100FFF size=1048576 (0x100000) bytes
