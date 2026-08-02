@@ -81,3 +81,27 @@ exact scheme needs one of: the **MEC part number + datasheet** (to map the
 `0xFFFFF8xx` hardware register block and confirm any HW hash/PKE), a **more
 complete ARC decompiler / manual decode** of the ~1 KB `0xBFD12Bxx` formatter and
 the SHA primitives, or **dynamic tracing** of the EC.
+
+## Addendum — CPU is ARC‑EM (ARCv2), per the MEC172x datasheet
+
+The board EC is a Microchip **MEC17xx** (ARC **EM / ARCv2**), not ARCompact/ARCv1.
+Findings from acting on that:
+
+* **Ruled out MIPS.** The load base `0xBFCF0000` sits in MIPS's `0xBFC00000` KSEG1
+  boot region, but the image has **0** `jr ra` (`0x03e00008`) and ~0 MIPS prologues
+  across 39,824 words — it is ARC, not MIPS.
+* **Tried the correct sub‑arch.** Vendored the ARCv2/ARC‑EM SLEIGH module
+  (`korkikian/ARCv2`) under `tools/ghidra_arcv2_module/` and re‑ran. Whole‑image it
+  is *milder* (624 vs 541 functions, bad‑marker density 8.7% vs 16.4%) and its
+  decompilation is kept as `readable_source/3310_EC_decompiled_ARCv2.c`.
+* **But it does not crack the target functions.** The SHA‑256 driver, CRC engine
+  and base‑N encoder still truncate at `halt_baddata` under ARCv2 too. Both
+  community ARC modules are incomplete on the exact opcodes these routines use, and
+  the code is heavily interleaved with inline pointer tables (e.g. runs of the
+  repeated literal `0xBFD1452B`), which defeats automatic code/data separation.
+
+**Net:** the datasheet pins the architecture and the register/memory map would help
+for any *hardware* crypto, but the SHA‑256 K‑table indicates the hash is **software**,
+so the blocker is decoder completeness + data interleaving, not the sub‑arch. The
+exact input→16‑char algorithm needs dynamic tracing or a manual decode of the
+~2 KB (`0xBFD12Bxx` encoder + SHA‑256 compression) region.
