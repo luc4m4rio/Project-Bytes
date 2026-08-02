@@ -47,6 +47,7 @@ tools/                         reproducible tooling
   ifd.py                       Intel Flash Descriptor parser (region table)
   carve_ec.py                  carve EC region + MEC payload from a full dump
   sigscan.py                   scan a blob for EC/ME/UEFI signatures
+  crypto_scan.py               scan a blob for crypto/encoding fingerprints
   disassemble_ec.sh            objdump + Ghidra headless driver
   ghidra_scripts/              SeedDisasm.java, ExportEC.java (headless)
   ghidra_arc_module/ARC/       community ARCompact SLEIGH module (drop into Ghidra)
@@ -66,6 +67,7 @@ dell_latitude_3310/
     3310_EC_functions.txt                    function table (addr, size, name)
     3310_EC_strings.txt                      strings with region offsets
   ANALYSIS.md
+  CRYPTO_ENCODING.md          crypto & encoding primitives (SHA-256, CRC-32, SDSA verify…)
 
 dell_latitude_e5570/
   flash_layout_16MB.txt        descriptor/region table (no EC region)

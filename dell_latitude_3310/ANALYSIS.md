@@ -65,8 +65,9 @@ Microchip MEC controllers use a Synopsys **ARC** core. Which ARC variant was
 determined empirically, since it decides the disassembler:
 
 * Base address `0xBFCF0000` is confirmed by ~480 internal `0xBFCF….` pointers in
-  the image; the code is otherwise **PC‑relative / position‑independent** (no
-  absolute pointers to strings — string loads use `add rX, pcl, off`).
+  the image (a switch/vector jump table); the code is otherwise **PC‑relative and
+  gp‑relative / position‑independent** — data and strings are reached via signed
+  offsets from `gp`, so their absolute addresses never appear as literals in code.
 * Disassembling the payload with the Synopsys GNU `objdump` and comparing CPU
   models, **`arc700` (ARCompact / ARCv1, little‑endian)** yields the cleanest
   decode (~79 % of the image is valid instructions; the rest is interleaved data).
@@ -106,3 +107,9 @@ The image is a full laptop EC. Recognisable subsystems include:
   `GetLidSwitchEnable`.
 * **Battery / smart‑battery** — `dellbatterydell`, `VerifyEcSdsaSignature`,
   vendor table `SANYO / PANASONIC / SAMSUNG SDI / MOTOROLA`.
+
+## Crypto / encoding
+
+See **CRYPTO_ENCODING.md** for the cryptographic and encoding routines
+(SHA-256, CRC-32, the `VerifyEcSdsaSignature` SDSA verify, base-N integer
+encoding, and Dell battery authentication), with byte-exact evidence.

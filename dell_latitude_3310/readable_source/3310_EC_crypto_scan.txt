@@ -1,0 +1,8 @@
+# crypto/encoding scan of dell_latitude_3310/ec/3310_D8M_EC_region_0x1000-0x100FFF.bin (1048576 bytes)
+  [+] SHA-256 K-table                    region 0x184F0 VMA 0xBFD084B0  64/64 entries
+  [+] CRC-32 reflected table             region 0xADBC VMA 0xBFCFAD7C  256/256 entries
+  [+] CRC-32 poly (reflected)            region 0xAFBC VMA 0xBFCFAF7C  0xEDB88320
+  [+] base-N digit table (itoa/%x)       region 0x22DB5 VMA 0xBFD12D75  
+  [+] SDSA signature-verify routine      region 0x14E08 VMA 0xBFD04DC8  
+  [+] Dell battery-auth tag              region 0x14E38 VMA 0xBFD04DF8  
+  [+] eSPI slave-boot loader             region 0xA06C VMA 0xBFCFA02C  
