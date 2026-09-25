@@ -1,0 +1,19 @@
+# Unreal generated / local
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+.vs/
+.vscode/
+.idea/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.code-workspace
+
+# Backend dev database + playtest logs
+Backend/Saved/
+Tools/playtest.local.json

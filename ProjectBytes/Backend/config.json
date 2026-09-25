@@ -1,0 +1,78 @@
+{
+  "_comment": "Backend + district config. Requirements are all optional: omit a field (or use 0 / []) for 'no requirement'. See README.md > District requirements.",
+  "host": "127.0.0.1",
+  "port": 8080,
+  "database": "Saved/bytes.db",
+  "devMode": true,
+  "serverKey": "dev-server-key-change-me",
+  "maxCharactersPerAccount": 4,
+  "maxRank": 255,
+  "standingPerRank": 1000,
+  "startingMoney": 5000,
+  "ticketTtlSeconds": 60,
+  "heartbeatSeconds": 5,
+  "heartbeatTimeoutSeconds": 20,
+
+  "districts": [
+    {
+      "id": "financial",
+      "displayName": "Financial District",
+      "shortName": "Financial",
+      "type": "Action",
+      "map": "/Engine/Maps/Entry",
+      "maxPlayers": 80
+    },
+    {
+      "id": "waterfront",
+      "displayName": "Waterfront",
+      "shortName": "Waterfront",
+      "type": "Action",
+      "map": "/Engine/Maps/Entry",
+      "maxPlayers": 80
+    },
+    {
+      "id": "financial-bronze",
+      "displayName": "Financial District (Bronze & below)",
+      "shortName": "Financial-B",
+      "type": "Action",
+      "map": "/Engine/Maps/Entry",
+      "maxPlayers": 80,
+      "requirements": { "maxThreat": "Bronze" }
+    },
+    {
+      "id": "waterfront-veteran",
+      "displayName": "Waterfront (Veteran: rank 80+, Silver)",
+      "shortName": "Waterfront-V",
+      "type": "Action",
+      "map": "/Engine/Maps/Entry",
+      "maxPlayers": 80,
+      "requirements": { "minRank": 80, "threats": ["Silver"] }
+    },
+    {
+      "id": "breakwater",
+      "displayName": "Breakwater Marina",
+      "shortName": "Social",
+      "type": "Social",
+      "map": "/Engine/Maps/Entry",
+      "maxPlayers": 100
+    },
+    {
+      "id": "fightclub",
+      "displayName": "Fight Club: Baylan Shipping",
+      "shortName": "FightClub",
+      "type": "FightClub",
+      "map": "/Engine/Maps/Entry",
+      "maxPlayers": 20,
+      "requirements": { "minRank": 10 }
+    },
+    {
+      "id": "devtest",
+      "displayName": "Dev Test Range",
+      "shortName": "DevTest",
+      "type": "Social",
+      "map": "/Engine/Maps/Entry",
+      "maxPlayers": 32,
+      "requirements": { "requiredAccountFlags": ["tester"] }
+    }
+  ]
+}
