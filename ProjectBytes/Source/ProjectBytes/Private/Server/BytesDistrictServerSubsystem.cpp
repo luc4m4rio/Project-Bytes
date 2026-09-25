@@ -16,15 +16,18 @@ void UBytesDistrictServerSubsystem::Initialize(FSubsystemCollectionBase& Collect
 {
 	Super::Initialize(Collection);
 
+	// Only real dedicated servers are managed. FParse::Value is a substring search, so match the leading '-'
+	// too: clients get -BytesDistrict=, which must not turn them into a "server".
 	const TCHAR* CmdLine = FCommandLine::Get();
-	if (!FParse::Value(CmdLine, TEXT("District="), DistrictId) || DistrictId.IsEmpty())
+	if (!IsRunningDedicatedServer() || !FParse::Value(CmdLine, TEXT("-District="), DistrictId) || DistrictId.IsEmpty())
 	{
-		return; // unmanaged: PIE / ad-hoc server
+		DistrictId.Reset();
+		return; // unmanaged: PIE / listen server / client
 	}
-	FParse::Value(CmdLine, TEXT("BytesPublicHost="), PublicHost);
-	FParse::Value(CmdLine, TEXT("BytesRegion="), Region);
-	FParse::Value(CmdLine, TEXT("BytesMaxPlayers="), RequestedMaxPlayers);
-	FParse::Value(CmdLine, TEXT("port="), CommandLinePort);
+	FParse::Value(CmdLine, TEXT("-BytesPublicHost="), PublicHost);
+	FParse::Value(CmdLine, TEXT("-BytesRegion="), Region);
+	FParse::Value(CmdLine, TEXT("-BytesMaxPlayers="), RequestedMaxPlayers);
+	FParse::Value(CmdLine, TEXT("-port="), CommandLinePort);
 
 	UE_LOG(LogBytes, Display, TEXT("Managed district server for '%s', backend %s"), *DistrictId, *UBytesSettings::GetBackendUrl());
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &ThisClass::Tick), 0.5f);

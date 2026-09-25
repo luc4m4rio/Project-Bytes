@@ -5,6 +5,8 @@
 #include "Core/BytesTypes.h"
 #include "BytesPlayerState.generated.h"
 
+class ABytesPlayerState;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBytesOnIdentityChanged, ABytesPlayerState*, PlayerState);
 
 /** Carries the character identity (name, faction, rank, threat, clan) to every client in the district. */

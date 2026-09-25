@@ -60,8 +60,8 @@ namespace BytesTicket
 			OutError = TEXT("Malformed ticket payload");
 			return false;
 		}
-		const FUTF8ToTCHAR PayloadJson(reinterpret_cast<const ANSICHAR*>(PayloadBytes.GetData()), PayloadBytes.Num());
-		const FString Json(PayloadJson.Length(), PayloadJson.Get());
+		const FUTF8ToTCHAR PayloadJson(reinterpret_cast<const UTF8CHAR*>(PayloadBytes.GetData()), PayloadBytes.Num());
+		const FString Json = FString::ConstructFromPtrSize(PayloadJson.Get(), PayloadJson.Length());
 
 		OutClaims = FBytesTicketClaims();
 		if (!FJsonObjectConverter::JsonObjectStringToUStruct(Json, &OutClaims))
