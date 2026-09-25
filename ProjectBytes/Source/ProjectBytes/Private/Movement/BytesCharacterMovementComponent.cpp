@@ -189,9 +189,10 @@ void UBytesCharacterMovementComponent::ApplyFeel(EBytesMovementFeel NewFeel)
 
 EBytesGait UBytesCharacterMovementComponent::GetGait() const
 {
-	// Sprint needs to be moving and not aiming or crouched; otherwise walk if held, else run.
-	const bool bMoving = !Acceleration.IsNearlyZero() || Velocity.SizeSquared2D() > FMath::Square(10.f);
-	if (bWantsToSprint && bMoving && !bWantsToStrafe && !IsCrouching())
+	// Only inputs that are identical on client and server at the start of a move (flags + crouch state).
+	// Acceleration is NOT used: the client reads it before updating it for the move, the server after, which
+	// would make the first sprint frame simulate differently and trigger a correction.
+	if (bWantsToSprint && !bWantsToStrafe && !IsCrouching())
 	{
 		return EBytesGait::Sprint;
 	}
@@ -247,8 +248,8 @@ float UBytesCharacterMovementComponent::GetMaxBrakingDeceleration() const
 
 FRotator UBytesCharacterMovementComponent::GetDeltaRotation(float DeltaTime) const
 {
-	return FRotator(AxisDelta(RotationRate.Pitch, DeltaTime), AxisDelta(GetActiveGaitSettings().RotationRate, DeltaTime),
-		AxisDelta(RotationRate.Roll, DeltaTime));
+	return FRotator(AxisDelta(static_cast<float>(RotationRate.Pitch), DeltaTime), AxisDelta(GetActiveGaitSettings().RotationRate, DeltaTime),
+		AxisDelta(static_cast<float>(RotationRate.Roll), DeltaTime));
 }
 
 void UBytesCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
@@ -269,10 +270,24 @@ FNetworkPredictionData_Client* UBytesCharacterMovementComponent::GetPredictionDa
 	return ClientPredictionData;
 }
 
-void UBytesCharacterMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity)
+void UBytesCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
 {
-	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
+	Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
+	// Before PhysicsRotation runs, so aiming in/out turns the body on this move, and replays use each move's own flags.
 	UpdateRotationMode();
+}
+
+bool UBytesCharacterMovementComponent::ClientUpdatePositionAfterServerUpdate()
+{
+	// Replaying saved moves overwrites the intents with the saved values; restore what the player is holding now.
+	const bool bSprint = bWantsToSprint;
+	const bool bWalk = bWantsToWalk;
+	const bool bStrafe = bWantsToStrafe;
+	const bool bResult = Super::ClientUpdatePositionAfterServerUpdate();
+	bWantsToSprint = bSprint;
+	bWantsToWalk = bWalk;
+	bWantsToStrafe = bStrafe;
+	return bResult;
 }
 
 void UBytesCharacterMovementComponent::UpdateRotationMode()

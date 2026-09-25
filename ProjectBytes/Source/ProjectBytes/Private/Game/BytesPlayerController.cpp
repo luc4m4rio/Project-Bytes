@@ -40,10 +40,10 @@ void ABytesPlayerController::ServerDevSetThreat_Implementation(EBytesThreat Thre
 void ABytesPlayerController::ServerDevSetMovementFeel_Implementation(uint8 Feel)
 {
 #if !UE_BUILD_SHIPPING
-	const ABytesCharacter* BytesCharacter = GetPawn<ABytesCharacter>();
+	ABytesCharacter* BytesCharacter = GetPawn<ABytesCharacter>();
 	if (BytesCharacter && Feel <= static_cast<uint8>(EBytesMovementFeel::Realistic))
 	{
-		BytesCharacter->GetBytesMovement()->ApplyFeel(static_cast<EBytesMovementFeel>(Feel));
+		BytesCharacter->SetMovementFeel(static_cast<EBytesMovementFeel>(Feel));
 	}
 #endif
 }

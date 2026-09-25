@@ -24,6 +24,9 @@ namespace
 		UStaticMeshComponent* Mesh = Block->GetStaticMeshComponent();
 		Mesh->SetMobility(EComponentMobility::Movable);
 		Mesh->SetStaticMesh(Cube);
+		// Must not stay Movable: movable components count as dynamic movement bases, and these local-only actors
+		// can't be referenced over the network, which would make every predicted move get corrected.
+		Mesh->SetMobility(EComponentMobility::Static);
 		Mesh->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 		Block->SetActorScale3D(Scale);
 	}

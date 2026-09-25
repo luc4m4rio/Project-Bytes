@@ -16,6 +16,7 @@ public class ProjectBytes : ModuleRules
 			"Json",
 			"JsonUtilities",
 			"EnhancedInput",
+			"InputCore",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

@@ -15,7 +15,7 @@ namespace
 			return 0.f;
 		}
 		const FVector Local = Facing.UnrotateVector(Direction.GetSafeNormal2D());
-		return FMath::RadiansToDegrees(FMath::Atan2(Local.Y, Local.X));
+		return static_cast<float>(FMath::RadiansToDegrees(FMath::Atan2(Local.Y, Local.X)));
 	}
 }
 
@@ -51,17 +51,17 @@ void UBytesAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	const FRotator Facing = Owner->GetActorRotation();
 	Velocity = Movement->Velocity;
-	Speed = Velocity.Size2D();
+	Speed = static_cast<float>(Velocity.Size2D());
 	// On simulated proxies this is the replicated input intent (see ABytesCharacter::OnRep_ReplicatedAcceleration).
 	Acceleration = Movement->GetCurrentAcceleration();
-	AccelerationAmount = FMath::Clamp(Acceleration.Size2D() / FMath::Max(1.f, GaitSettings.MaxAcceleration), 0.f, 1.f);
+	AccelerationAmount = FMath::Clamp(static_cast<float>(Acceleration.Size2D()) / FMath::Max(1.f, GaitSettings.MaxAcceleration), 0.f, 1.f);
 	bHasAcceleration = AccelerationAmount > 0.01f;
 	MovementDirectionAngle = SignedAngle2D(Velocity, Facing);
 	AccelerationDirectionAngle = SignedAngle2D(Acceleration, Facing);
 
 	const FRotator Aim = (Owner->GetBaseAimRotation() - Facing).GetNormalized();
-	AimPitch = Aim.Pitch;
-	AimYaw = Aim.Yaw;
+	AimPitch = static_cast<float>(Aim.Pitch);
+	AimYaw = static_cast<float>(Aim.Yaw);
 
 	bIsInAir = Movement->IsFalling();
 	if (bWasInAir && !bIsInAir)

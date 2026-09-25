@@ -60,6 +60,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Bytes|Movement")
 	bool IsAiming() const;
 
+	/**
+	 * Server: change movement feel for this character on every machine (replicated), so prediction and the
+	 * acceleration quantization stay in sync. The owning client should also call ApplyFeel locally right away.
+	 */
+	void SetMovementFeel(EBytesMovementFeel NewFeel);
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
@@ -124,6 +130,12 @@ private:
 
 	UFUNCTION()
 	void OnRep_ReplicatedAcceleration();
+
+	UFUNCTION()
+	void OnRep_MovementFeel();
+
+	UPROPERTY(ReplicatedUsing = OnRep_MovementFeel)
+	EBytesMovementFeel ReplicatedFeel = EBytesMovementFeel::Responsive;
 
 	/** Simulated proxies only: quantized acceleration for trajectory prediction. */
 	UPROPERTY(ReplicatedUsing = OnRep_ReplicatedAcceleration)

@@ -149,7 +149,8 @@ protected:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
+	virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
+	virtual bool ClientUpdatePositionAfterServerUpdate() override;
 
 	/** Default feel; per-gait numbers below are filled from it and can then be tweaked in a Blueprint child. */
 	UPROPERTY(EditDefaultsOnly, Category = "Bytes|Movement")

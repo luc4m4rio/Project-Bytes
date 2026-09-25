@@ -239,7 +239,9 @@ plants and pivots.
 | **Responsive** (default) | 420 / 2400 / 2600 | 720°/s | 0.18 s | reaches full speed in ~0.18 s and stops in ~0.16 s, fluid but quick |
 | Realistic | 400 / 800 / 1000 | 400°/s | 0.30 s | ~Game Animation Sample, heavy |
 
-Each preset sets walk (Ctrl, hold), run, sprint (Shift, hold) and crouch (C, toggle) separately.
+Each preset sets walk (Ctrl, hold), run, sprint (Shift, hold) and crouch (C, toggle) separately. Changing the
+feel goes through the server and replicates to everyone, because prediction and the acceleration
+encoding depend on it.
 Aiming (right mouse, hold) switches to strafing: the character faces the camera and moves 15% slower.
 Sprinting isn't allowed while aiming or crouched. To fine-tune a preset, pick it in a Blueprint child
 of the character's movement component, then edit the *Tuning* numbers.
@@ -291,7 +293,9 @@ its character, animations and databases into this project, or retarget them.
      so the body never visibly trails your input.
 6. Make a Blueprint child of **`BytesCharacter`** with your mesh and this AnimBP. Select it in
    *Project Settings → Game → Project Bytes Online → District Pawn Class*. The appearance component
-   keeps working, because clothing parts follow the body with leader pose.
+   keeps working, because clothing parts follow the body with leader pose. The class is only
+   soft-referenced from config, so for packaged builds reference it from a map or add it to the
+   always-cook list.
 
 To test before you have maps: on the dev map (`/Engine/Maps/Entry`), every machine spawns a lit
 160 m floor, pillars, a ledge, a step and player starts locally. Turn this off with

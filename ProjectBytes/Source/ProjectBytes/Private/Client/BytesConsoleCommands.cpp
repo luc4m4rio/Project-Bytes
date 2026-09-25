@@ -260,7 +260,7 @@ namespace BytesConsole
 		{
 			ABytesPlayerController* PC = GetLocalController(World);
 			ABytesCharacter* BytesCharacter = PC ? PC->GetPawn<ABytesCharacter>() : nullptr;
-			if (!BytesCharacter || !NeedArgs(Args, 1, TEXT("bytes.Move.Feel <Snappy|Responsive|Realistic>")))
+			if (!BytesCharacter || !BytesCharacter->GetBytesMovement() || !NeedArgs(Args, 1, TEXT("bytes.Move.Feel <Snappy|Responsive|Realistic>")))
 			{
 				return;
 			}

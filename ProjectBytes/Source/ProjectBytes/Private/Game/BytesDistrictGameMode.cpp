@@ -8,6 +8,7 @@
 #include "ProjectBytes.h"
 #include "Engine/GameInstance.h"
 #include "GameFramework/GameSession.h"
+#include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
 
 ABytesDistrictGameMode::ABytesDistrictGameMode()

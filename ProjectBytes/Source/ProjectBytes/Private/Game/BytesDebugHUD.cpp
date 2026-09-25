@@ -161,9 +161,9 @@ void ABytesDebugHUD::DrawDistrict(UBytesAccountSubsystem* Account)
 	{
 		Line(FString::Printf(TEXT("You: %s  standing %d  $%d"), *Own->GetIdentity().Name, Own->Standing, Own->Money));
 	}
-	if (const ABytesCharacter* Body = PlayerOwner ? PlayerOwner->GetPawn<ABytesCharacter>() : nullptr)
+	const ABytesCharacter* Body = PlayerOwner ? PlayerOwner->GetPawn<ABytesCharacter>() : nullptr;
+	if (const UBytesCharacterMovementComponent* Movement = Body ? Body->GetBytesMovement() : nullptr)
 	{
-		const UBytesCharacterMovementComponent* Movement = Body->GetBytesMovement();
 		Line(FString::Printf(TEXT("Movement: %s  %s%s  %.0f cm/s  (feel: %s)"), *StaticEnum<EBytesGait>()->GetNameStringByValue(static_cast<int64>(Body->GetGait())),
 			Body->IsAiming() ? TEXT("aiming") : TEXT("free"), Movement->IsCrouching() ? TEXT(" crouched") : TEXT(""), Body->GetVelocity().Size2D(),
 			*StaticEnum<EBytesMovementFeel>()->GetNameStringByValue(static_cast<int64>(Movement->GetFeel()))), Dim);

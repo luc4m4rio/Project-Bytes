@@ -54,6 +54,10 @@ UBytesCharacterMovementComponent* ABytesCharacter::GetBytesMovement() const
 void ABytesCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	if (HasAuthority() && GetBytesMovement())
+	{
+		ReplicatedFeel = GetBytesMovement()->GetFeel();
+	}
 	if (GetNetMode() == NM_DedicatedServer)
 	{
 		// Servers never render: only montages (for gameplay notifies) tick.
@@ -70,6 +74,7 @@ void ABytesCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME_CONDITION(ABytesCharacter, ReplicatedAcceleration, COND_SimulatedOnly);
 	DOREPLIFETIME_CONDITION(ABytesCharacter, ReplicatedGait, COND_SimulatedOnly);
 	DOREPLIFETIME_CONDITION(ABytesCharacter, bReplicatedAiming, COND_SimulatedOnly);
+	DOREPLIFETIME(ABytesCharacter, ReplicatedFeel);
 }
 
 void ABytesCharacter::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
@@ -109,6 +114,23 @@ void ABytesCharacter::OnRep_ReplicatedAcceleration()
 	FMath::PolarToCartesian(Magnitude, Radians, Accel.X, Accel.Y);
 	Accel.Z = (ReplicatedAcceleration.AccelZ / 127.0) * Range;
 	Movement->SetReplicatedAcceleration(Accel);
+}
+
+void ABytesCharacter::SetMovementFeel(EBytesMovementFeel NewFeel)
+{
+	if (HasAuthority() && GetBytesMovement())
+	{
+		ReplicatedFeel = NewFeel;
+		GetBytesMovement()->ApplyFeel(NewFeel);
+	}
+}
+
+void ABytesCharacter::OnRep_MovementFeel()
+{
+	if (UBytesCharacterMovementComponent* Movement = GetBytesMovement(); Movement && Movement->GetFeel() != ReplicatedFeel)
+	{
+		Movement->ApplyFeel(ReplicatedFeel);
+	}
 }
 
 EBytesGait ABytesCharacter::GetGait() const
@@ -207,6 +229,11 @@ void ABytesCharacter::BuildDefaultInput()
 		Mouse.Modifiers.Add(NegateY);
 
 		FEnhancedActionKeyMapping& Stick = Context->MapKey(LookAction, EKeys::Gamepad_Right2D);
+		// Sticks are a rate, not a delta: scale by frame time (~150 deg/s with the default 2.5 input scale).
+		Stick.Modifiers.Add(NewObject<UInputModifierScaleByDeltaTime>(Context));
+		UInputModifierScalar* StickSpeed = NewObject<UInputModifierScalar>(Context);
+		StickSpeed->Scalar = FVector(60.0, 60.0, 1.0);
+		Stick.Modifiers.Add(StickSpeed);
 		UInputModifierNegate* StickNegateY = NewObject<UInputModifierNegate>(Context);
 		StickNegateY->bX = false;
 		StickNegateY->bY = true;
