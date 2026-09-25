@@ -57,6 +57,8 @@ public:
 	void RefreshCharacters(FBytesDone Done = nullptr);
 	void CreateCharacter(const FString& Name, EBytesFaction Faction, const FString& Appearance = FString(), FBytesDone Done = nullptr);
 	void DeleteCharacter(const FString& CharacterIdOrName, FBytesDone Done = nullptr);
+	/** Re-edit an existing character's look (validated against its rank/faction by the backend). */
+	void UpdateAppearance(const FString& CharacterIdOrName, const FString& AppearanceJson, FBytesDone Done = nullptr);
 	void RefreshDistricts(FBytesDone Done = nullptr);
 	/** Asks the backend for a ticket into DistrictId (optionally a specific instance) and travels there. */
 	void JoinDistrict(const FString& DistrictId, const FString& InstanceId = FString(), FBytesDone Done = nullptr);
@@ -88,6 +90,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Bytes|Characters", meta = (DisplayName = "Create Character"))
 	void K2_CreateCharacter(const FString& Name, EBytesFaction Faction, const FString& Appearance, FBytesOnResult OnComplete);
+
+	UFUNCTION(BlueprintCallable, Category = "Bytes|Characters", meta = (DisplayName = "Update Appearance"))
+	void K2_UpdateAppearance(const FString& CharacterId, const FString& AppearanceJson, FBytesOnResult OnComplete);
 
 	UFUNCTION(BlueprintCallable, Category = "Bytes|Characters", meta = (DisplayName = "Delete Character"))
 	void K2_DeleteCharacter(const FString& CharacterId, FBytesOnResult OnComplete);

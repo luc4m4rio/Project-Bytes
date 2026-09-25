@@ -20,6 +20,7 @@ public:
 private:
 	void DrawFrontend(class UBytesAccountSubsystem* Account);
 	void DrawDistrict(class UBytesAccountSubsystem* Account);
+	void DrawCreator(class UBytesCharacterCreator* Creator);
 	void Line(const FString& Text, const FLinearColor& Color = FLinearColor::White, float Indent = 0.f);
 
 	float CursorX = 0.f;

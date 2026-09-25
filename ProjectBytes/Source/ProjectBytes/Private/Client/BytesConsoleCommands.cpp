@@ -88,7 +88,7 @@ namespace BytesConsole
 		FAutoConsoleCommandWithWorldAndArgs Command;
 	};
 
-	FCommand Register(TEXT("bytes.Register"), TEXT("bytes.Register <user> <password> - create an account"),
+	FCommand CmdRegister(TEXT("bytes.Register"), TEXT("bytes.Register <user> <password> - create an account"),
 		[](const TArray<FString>& Args, UWorld* World)
 		{
 			if (UBytesAccountSubsystem* Account = GetAccount(World); Account && NeedArgs(Args, 2, TEXT("bytes.Register <user> <password>")))
@@ -97,7 +97,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand Login(TEXT("bytes.Login"), TEXT("bytes.Login <user> <password>"),
+	FCommand CmdLogin(TEXT("bytes.Login"), TEXT("bytes.Login <user> <password>"),
 		[](const TArray<FString>& Args, UWorld* World)
 		{
 			if (UBytesAccountSubsystem* Account = GetAccount(World); Account && NeedArgs(Args, 2, TEXT("bytes.Login <user> <password>")))
@@ -106,7 +106,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand Logout(TEXT("bytes.Logout"), TEXT("Log out (and leave the district)"),
+	FCommand CmdLogout(TEXT("bytes.Logout"), TEXT("Log out (and leave the district)"),
 		[](const TArray<FString>&, UWorld* World)
 		{
 			if (UBytesAccountSubsystem* Account = GetAccount(World))
@@ -115,7 +115,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand Characters(TEXT("bytes.Characters"), TEXT("List this account's characters"),
+	FCommand CmdCharacters(TEXT("bytes.Characters"), TEXT("List this account's characters"),
 		[](const TArray<FString>&, UWorld* World)
 		{
 			if (UBytesAccountSubsystem* Account = GetAccount(World))
@@ -131,7 +131,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand CreateCharacter(TEXT("bytes.CreateCharacter"), TEXT("bytes.CreateCharacter <name> <Enforcer|Criminal>"),
+	FCommand CmdCreateCharacter(TEXT("bytes.CreateCharacter"), TEXT("bytes.CreateCharacter <name> <Enforcer|Criminal>"),
 		[](const TArray<FString>& Args, UWorld* World)
 		{
 			UBytesAccountSubsystem* Account = GetAccount(World);
@@ -147,7 +147,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand DeleteCharacter(TEXT("bytes.DeleteCharacter"), TEXT("bytes.DeleteCharacter <name>"),
+	FCommand CmdDeleteCharacter(TEXT("bytes.DeleteCharacter"), TEXT("bytes.DeleteCharacter <name>"),
 		[](const TArray<FString>& Args, UWorld* World)
 		{
 			if (UBytesAccountSubsystem* Account = GetAccount(World); Account && NeedArgs(Args, 1, TEXT("bytes.DeleteCharacter <name>")))
@@ -156,7 +156,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand Select(TEXT("bytes.Select"), TEXT("bytes.Select <name> - pick the character to play"),
+	FCommand CmdSelect(TEXT("bytes.Select"), TEXT("bytes.Select <name> - pick the character to play"),
 		[](const TArray<FString>& Args, UWorld* World)
 		{
 			if (UBytesAccountSubsystem* Account = GetAccount(World); Account && NeedArgs(Args, 1, TEXT("bytes.Select <name>")))
@@ -168,7 +168,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand Districts(TEXT("bytes.Districts"), TEXT("List districts and whether the selected character may enter"),
+	FCommand CmdDistricts(TEXT("bytes.Districts"), TEXT("List districts and whether the selected character may enter"),
 		[](const TArray<FString>&, UWorld* World)
 		{
 			if (UBytesAccountSubsystem* Account = GetAccount(World))
@@ -184,7 +184,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand Join(TEXT("bytes.Join"), TEXT("bytes.Join <district> [instance] - e.g. bytes.Join financial"),
+	FCommand CmdJoin(TEXT("bytes.Join"), TEXT("bytes.Join <district> [instance] - e.g. bytes.Join financial"),
 		[](const TArray<FString>& Args, UWorld* World)
 		{
 			if (UBytesAccountSubsystem* Account = GetAccount(World); Account && NeedArgs(Args, 1, TEXT("bytes.Join <district> [instance]")))
@@ -193,7 +193,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand Leave(TEXT("bytes.Leave"), TEXT("Leave the district and return to character select"),
+	FCommand CmdLeave(TEXT("bytes.Leave"), TEXT("Leave the district and return to character select"),
 		[](const TArray<FString>&, UWorld* World)
 		{
 			if (UBytesAccountSubsystem* Account = GetAccount(World))
@@ -202,7 +202,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand Status(TEXT("bytes.Status"), TEXT("Print account, characters and districts"),
+	FCommand CmdStatus(TEXT("bytes.Status"), TEXT("Print account, characters and districts"),
 		[](const TArray<FString>&, UWorld* World)
 		{
 			if (UBytesAccountSubsystem* Account = GetAccount(World))
@@ -214,7 +214,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand DevSetRank(TEXT("bytes.Dev.SetRank"), TEXT("bytes.Dev.SetRank <rank> - backend devMode: set the selected character's rank"),
+	FCommand CmdDevSetRank(TEXT("bytes.Dev.SetRank"), TEXT("bytes.Dev.SetRank <rank> - backend devMode: set the selected character's rank"),
 		[](const TArray<FString>& Args, UWorld* World)
 		{
 			if (UBytesAccountSubsystem* Account = GetAccount(World); Account && NeedArgs(Args, 1, TEXT("bytes.Dev.SetRank <rank>")))
@@ -223,7 +223,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand DevSetThreat(TEXT("bytes.Dev.SetThreat"), TEXT("bytes.Dev.SetThreat <Green|Bronze|Silver|Gold> - backend devMode"),
+	FCommand CmdDevSetThreat(TEXT("bytes.Dev.SetThreat"), TEXT("bytes.Dev.SetThreat <Green|Bronze|Silver|Gold> - backend devMode"),
 		[](const TArray<FString>& Args, UWorld* World)
 		{
 			if (UBytesAccountSubsystem* Account = GetAccount(World); Account && NeedArgs(Args, 1, TEXT("bytes.Dev.SetThreat <Green|Bronze|Silver|Gold>")))
@@ -232,7 +232,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand DevAwardStanding(TEXT("bytes.Dev.AwardStanding"), TEXT("bytes.Dev.AwardStanding <standing> [money] - in a district, via the server"),
+	FCommand CmdDevAwardStanding(TEXT("bytes.Dev.AwardStanding"), TEXT("bytes.Dev.AwardStanding <standing> [money] - in a district, via the server"),
 		[](const TArray<FString>& Args, UWorld* World)
 		{
 			if (ABytesPlayerController* PC = GetLocalController(World); PC && NeedArgs(Args, 1, TEXT("bytes.Dev.AwardStanding <standing> [money]")))
@@ -241,7 +241,7 @@ namespace BytesConsole
 			}
 		});
 
-	FCommand DevServerThreat(TEXT("bytes.Dev.ServerThreat"), TEXT("bytes.Dev.ServerThreat <threat> - in a district, via the server"),
+	FCommand CmdDevServerThreat(TEXT("bytes.Dev.ServerThreat"), TEXT("bytes.Dev.ServerThreat <threat> - in a district, via the server"),
 		[](const TArray<FString>& Args, UWorld* World)
 		{
 			EBytesThreat Threat = EBytesThreat::Green;

@@ -3,6 +3,7 @@
   "host": "127.0.0.1",
   "port": 8080,
   "database": "Saved/bytes.db",
+  "appearanceCatalog": "../Content/Data/AppearanceCatalog.json",
   "devMode": true,
   "serverKey": "dev-server-key-change-me",
   "maxCharactersPerAccount": 4,

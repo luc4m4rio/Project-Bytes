@@ -141,6 +141,82 @@ console (these need backend `devMode`), or `bytes.py admin set-stats`.
 | `Backend/server.py`, `Backend/config.json` | Backend service (Python 3.9+, standard library only, SQLite). |
 | `Tools/bytes.py`, `Playtest.bat`, `playtest.sh` | Local cluster launcher. |
 
+## Character creator
+
+This works like APB's creator. A character's look is one JSON document stored on the character. It
+has five parts:
+
+| Part | What it controls |
+|---|---|
+| **Body type** | male or female. This picks the body mesh and optional anim class. |
+| **Morph sliders** | 25 by default: height, body fat, muscle, shoulders, jaw, cheekbones, nose width/length/bridge, broken nose, eye size/spacing/tilt, brow height, lips, ears, age… Negative slider values drive one morph target and positive values drive another, so one slider can make a nose narrower or wider. Clothing gets the same morph weights, so it follows the body shape. `height`-style sliders also scale the mesh. |
+| **Colours** | Skin tone (limited to a palette), eyes, hair (also applied to beard and eyebrows), lips, makeup. Each one is a material vector parameter. |
+| **Clothing and hair slots** | hair, facial hair, eyebrows, headwear, glasses, top, jacket, gloves, legs, shoes. Each part is a follower skeletal mesh with primary/secondary/tertiary colour channels. Items can be **locked by rank or faction** (the tactical vest is Enforcer-only from rank 25, the long coat unlocks at rank 60…). |
+| **Tattoos and decals** | Up to 16 layers. Each layer has a design, a body region (face, neck, chest, back, arms, hands, legs), position, scale, rotation, colour, opacity and a flip option. *Mirror* copies a layer onto the opposite limb. Designs can be locked and limited to certain regions (a teardrop only goes on the face). |
+
+Everything available is listed in **`Content/Data/AppearanceCatalog.json`**. The game and the backend
+both read this one file:
+
+- The **backend** (`Backend/appearance.py`) validates every look when a character is created or re-edited.
+  It is the authority on unlocks, so a modified client can't wear a rank 60 coat at rank 5. Out-of-range
+  numbers are clamped rather than rejected.
+- The **game** runs the same rules (`FBytesAppearanceCatalog::Validate`) so the creator can show locked
+  items and problems straight away.
+- The **district server** receives the stored look through the ticket redeem. It replicates the look
+  in the player's identity, and each client's `UBytesAppearanceComponent` builds the character from it.
+
+### Trying it without any UI
+
+In a game window's console:
+
+```
+bytes.Creator.New male Criminal         (or: bytes.Creator.Edit Vex  to re-edit an existing character)
+bytes.Creator.List morphs               bytes.Creator.Morph noseWidth -0.4      bytes.Creator.Morph height 0.6
+bytes.Creator.Color skin #8d5524        bytes.Creator.Color hair #b03020
+bytes.Creator.List parts jacket         bytes.Creator.Part jacket hoodie        bytes.Creator.PartColor jacket 1 #202020
+bytes.Creator.Tattoo tat_skull leftUpperArm 0.5 0.4 0.35 15 #101010 0.9
+bytes.Creator.TattooMirror 1            bytes.Creator.TattooMove 1 0.45 0.5 0.4 0
+bytes.Creator.Randomize                 bytes.Creator.Undo / Redo
+bytes.Creator.Focus Face                bytes.Creator.Rotate 45
+bytes.Creator.Show                      (JSON + anything blocking save)
+bytes.Creator.Save Vex                  (new character; for an edit just bytes.Creator.Save)
+```
+
+While the creator is open, the debug HUD shows the whole look: changed sliders, colours, outfit,
+tattoo layers and anything blocking save. Locked items and bad colours appear in red.
+
+### Hooking up your art
+
+The catalog ships with placeholder asset paths (`/Game/Characters/...`). Anything that doesn't exist
+yet is skipped, so the system already runs. To make the preview show real characters:
+
+1. **Body meshes.** Import male and female bodies on a shared skeleton. Point `bodies[].mesh` at them,
+   and optionally `animClass`.
+2. **Morph targets.** Name the body's morph targets after the catalog's `negTarget`/`posTarget`
+   (`Nose_Narrow`, `Nose_Wide`, …). Give clothing meshes the same body-shape targets
+   (`BodyFat_Heavy`, `Muscle_Buff`, …) so they deform with the body.
+3. **Skin material.** Add vector parameters `SkinTint`, `EyeColor`, `LipColor`, `MakeupColor` and a
+   texture parameter `TattooOverlay`. Lerp the overlay's RGB over the base colour using its alpha. The
+   overlay is a render target laid out like your skin UV atlas: each `regions[].uv` is `[x, y, w, h]`
+   in 0..1 space. Match these to your UV layout, or lay out your UVs to match them.
+4. **Clothing materials.** Use vector parameters `PrimaryColor`, `SecondaryColor` and `TertiaryColor`
+   (per slot in `slots[].colorParameters`). Hair meshes use `HairColor`.
+5. **Tattoo textures.** Use white designs on transparent backgrounds. The layer colour tints them.
+6. **Adding content.** Adding a part, design, slider or colour is a JSON edit. Both the backend and
+   the game pick it up. Restart the backend, or call `ReloadCatalog` in-game.
+
+### Code
+
+| Path | Role |
+|---|---|
+| `Appearance/BytesAppearanceTypes` | The look document, catalog structs, validation, hex colour helpers. |
+| `Appearance/BytesAppearanceSubsystem` | Loads the catalog, randomizes looks, owns the active creator session. |
+| `Appearance/BytesCharacterCreator` | Creator API for your UMG screens: setters, locked-item option lists, tattoo layers and mirroring, undo/redo (use `RecordUndo` + `bRecordUndo=false` for slider drags), save or re-edit. |
+| `Appearance/BytesAppearanceComponent` | Applies a look to a skeletal mesh: async asset loading, part components, morphs, material parameters, tattoo compositing. Follows the owner's player state automatically. |
+| `Appearance/BytesCreatorPreviewActor` | Creator mannequin with an orbit camera that frames the face or body. Place one in your frontend map or let the creator spawn one. |
+| `Game/BytesCharacter` | Playable `ACharacter` with the appearance component. Once your maps have floors, use a Blueprint child as the district game mode's `DefaultPawnClass`. |
+| `Backend/appearance.py` | Server-side validation. `POST /v1/characters/{id}/appearance` re-edits a look while the character is offline. |
+
 ## Working in the editor (PIE)
 
 A server started **without** `-District=` (PIE, or `open` on a listen server) runs *unmanaged*. It
@@ -161,8 +237,8 @@ commands in a PIE client, but tickets only matter on managed servers.
   `Backend/config.json`. Change `GameDefaultMap`/`FrontendMap` to your frontend map.
 - **UI.** Build UMG on top of `UBytesAccountSubsystem`. Every call has a Blueprint version with a
   completion delegate, and `OnStateChanged` tells you when to refresh. Then replace `HUDClass`.
-- **Character customization.** `FBytesCharacter::Appearance` is an opaque string (up to 16 KB) that is
-  stored and replicated. Put your creator's serialized data there.
+- **Character customization.** See *Character creator* above. The look is the JSON in
+  `FBytesCharacter::Appearance`, and what's available lives in `Content/Data/AppearanceCatalog.json`.
 - **Faction spawning / loadouts.** Implement `OnCharacterEntered` in a Blueprint child of
   `BytesDistrictGameMode`.
 - **More districts.** Add an entry to `config.json`. No code changes are needed.
@@ -188,4 +264,5 @@ python -m unittest discover -s Backend/tests -v
 
 The tests cover accounts, character slots and name rules, requirement evaluation, instance fill,
 capacity reservation, ticket signing, verification and replay rejection, heartbeat and presence,
-progression, and stale-server reaping.
+progression, stale-server reaping, and appearance validation (clamping, palettes, rank and faction
+unlocks, tattoo rules, re-editing through the API).

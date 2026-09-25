@@ -1,4 +1,6 @@
 #include "Game/BytesDebugHUD.h"
+#include "Appearance/BytesAppearanceSubsystem.h"
+#include "Appearance/BytesCharacterCreator.h"
 #include "Client/BytesAccountSubsystem.h"
 #include "Core/BytesSettings.h"
 #include "Game/BytesPlayerState.h"
@@ -69,6 +71,10 @@ void ABytesDebugHUD::DrawHUD()
 	{
 		DrawDistrict(Account);
 	}
+	else if (UBytesAppearanceSubsystem* Appearance = UBytesAppearanceSubsystem::Get(this); Appearance && Appearance->GetActiveCreator())
+	{
+		DrawCreator(Appearance->GetActiveCreator());
+	}
 	else if (Account)
 	{
 		DrawFrontend(Account);
@@ -106,7 +112,7 @@ void ABytesDebugHUD::DrawFrontend(UBytesAccountSubsystem* Account)
 	Line(FString::Printf(TEXT("Characters (%d/%d)"), Characters.Num(), AccountInfo.MaxCharacters), Title);
 	if (Characters.Num() == 0)
 	{
-		Line(TEXT("none yet: bytes.CreateCharacter <name> <Enforcer|Criminal>"), Dim, 16.f);
+		Line(TEXT("none yet: bytes.Creator.New, or quick: bytes.CreateCharacter <name> <Enforcer|Criminal>"), Dim, 16.f);
 	}
 	for (const FBytesCharacter& Character : Characters)
 	{
@@ -139,6 +145,7 @@ void ABytesDebugHUD::DrawFrontend(UBytesAccountSubsystem* Account)
 
 	CursorY += 8.f;
 	Line(TEXT("bytes.Join <district> [instance]   bytes.Select <name>   bytes.Districts   bytes.Dev.SetRank 80   bytes.Dev.SetThreat Silver"), Dim);
+	Line(TEXT("bytes.Creator.New [male|female] [Enforcer|Criminal]   bytes.Creator.Edit <name>   (character creator)"), Dim);
 }
 
 void ABytesDebugHUD::DrawDistrict(UBytesAccountSubsystem* Account)
@@ -175,4 +182,55 @@ void ABytesDebugHUD::DrawDistrict(UBytesAccountSubsystem* Account)
 
 	CursorY += 8.f;
 	Line(TEXT("bytes.Leave   bytes.Join <district>   bytes.Dev.AwardStanding 5000   bytes.Dev.ServerThreat Gold"), Dim);
+}
+
+void ABytesDebugHUD::DrawCreator(UBytesCharacterCreator* Creator)
+{
+	const FBytesAppearance& Look = Creator->GetAppearanceRef();
+	Line(FString::Printf(TEXT("CHARACTER CREATOR  -  %s  %s  %s  (rank %d unlocks)"), Creator->IsEditingExisting() ? TEXT("editing") : TEXT("new"),
+		*Look.Body, *BytesEnums::ToString(Creator->GetFaction()), Creator->GetRank()), Title);
+
+	TArray<FString> Morphs;
+	for (const TPair<FString, float>& Pair : Look.Morphs)
+	{
+		if (!FMath::IsNearlyZero(Pair.Value))
+		{
+			Morphs.Add(FString::Printf(TEXT("%s %+.2f"), *Pair.Key, Pair.Value));
+		}
+	}
+	Line(FString::Printf(TEXT("Morphs: %s"), Morphs.Num() > 0 ? *FString::Join(Morphs, TEXT(", ")) : TEXT("all default")), FLinearColor::White, 16.f);
+
+	TArray<FString> Colors;
+	for (const TPair<FString, FString>& Pair : Look.Colors)
+	{
+		Colors.Add(FString::Printf(TEXT("%s %s"), *Pair.Key, *Pair.Value));
+	}
+	Line(FString::Printf(TEXT("Colours: %s"), Colors.Num() > 0 ? *FString::Join(Colors, TEXT(", ")) : TEXT("defaults")), FLinearColor::White, 16.f);
+
+	Line(TEXT("Outfit:"), FLinearColor::White, 16.f);
+	for (const TPair<FString, FBytesAppearancePart>& Pair : Look.Parts)
+	{
+		Line(FString::Printf(TEXT("%-10s %-18s %s"), *Pair.Key, *Pair.Value.Id, *FString::Join(Pair.Value.Colors, TEXT(" "))), Dim, 32.f);
+	}
+	Line(FString::Printf(TEXT("Tattoos (%d):"), Look.Tattoos.Num()), FLinearColor::White, 16.f);
+	for (int32 Index = 0; Index < Look.Tattoos.Num(); ++Index)
+	{
+		const FBytesTattooLayer& Layer = Look.Tattoos[Index];
+		Line(FString::Printf(TEXT("%d. %-12s on %-14s at %.2f,%.2f  scale %.2f  rot %.0f  %s %.0f%%%s"), Index + 1, *Layer.Decal, *Layer.Region,
+			Layer.X, Layer.Y, Layer.Scale, Layer.Rotation, *Layer.Color, Layer.Opacity * 100.f, Layer.Mirror ? TEXT("  mirrored") : TEXT("")), Dim, 32.f);
+	}
+
+	const TArray<FString> Errors = Creator->Validate();
+	if (Errors.Num() > 0)
+	{
+		CursorY += 8.f;
+		for (const FString& Error : Errors)
+		{
+			Line(Error, Bad, 16.f);
+		}
+	}
+
+	CursorY += 8.f;
+	Line(TEXT("bytes.Creator.Morph <id> <v>   .Color <id> #hex   .Part <slot> <id>   .PartColor <slot> <1-3> #hex   .Tattoo <decal> <region> [x y scale rot]"), Dim);
+	Line(TEXT("bytes.Creator.TattooMirror <n>   .Randomize   .Undo/.Redo   .Focus Face|Body   .Rotate 45   .List morphs|parts <slot>|decals   .Save <name>"), Dim);
 }

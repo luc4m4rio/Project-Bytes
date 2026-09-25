@@ -1,0 +1,1068 @@
+{
+ "_comment": "Shared by the game (UBytesAppearanceSubsystem) and the backend (Backend/appearance.py). Asset paths are placeholders until the meshes/textures exist; missing assets are skipped with a warning.",
+ "version": 1,
+ "maxTattoos": 16,
+ "tattooAtlasSize": 2048,
+ "tattooMinScale": 0.05,
+ "tattooMaxScale": 1.0,
+ "tattooTextureParameter": "TattooOverlay",
+ "bodies": [
+  {
+   "id": "male",
+   "displayName": "Male",
+   "mesh": "/Game/Characters/Male/SK_Male_Body.SK_Male_Body",
+   "animClass": "",
+   "skinMaterialSlots": []
+  },
+  {
+   "id": "female",
+   "displayName": "Female",
+   "mesh": "/Game/Characters/Female/SK_Female_Body.SK_Female_Body",
+   "animClass": "",
+   "skinMaterialSlots": []
+  }
+ ],
+ "morphs": [
+  {
+   "id": "height",
+   "displayName": "Height",
+   "category": "Body",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "meshScaleMin": 0.92,
+   "meshScaleMax": 1.08
+  },
+  {
+   "id": "bodyFat",
+   "displayName": "Body Fat",
+   "category": "Body",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "BodyFat_Thin",
+   "posTarget": "BodyFat_Heavy"
+  },
+  {
+   "id": "muscle",
+   "displayName": "Muscle",
+   "category": "Body",
+   "min": 0.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "posTarget": "Muscle_Buff"
+  },
+  {
+   "id": "shoulders",
+   "displayName": "Shoulder Width",
+   "category": "Body",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Shoulders_Narrow",
+   "posTarget": "Shoulders_Wide"
+  },
+  {
+   "id": "chest",
+   "displayName": "Chest",
+   "category": "Body",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Chest_Small",
+   "posTarget": "Chest_Large"
+  },
+  {
+   "id": "waist",
+   "displayName": "Waist",
+   "category": "Body",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Waist_Narrow",
+   "posTarget": "Waist_Wide"
+  },
+  {
+   "id": "hips",
+   "displayName": "Hips",
+   "category": "Body",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Hips_Narrow",
+   "posTarget": "Hips_Wide"
+  },
+  {
+   "id": "legLength",
+   "displayName": "Leg Length",
+   "category": "Body",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Legs_Short",
+   "posTarget": "Legs_Long"
+  },
+  {
+   "id": "headSize",
+   "displayName": "Head Size",
+   "category": "Head",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Head_Small",
+   "posTarget": "Head_Large"
+  },
+  {
+   "id": "faceWidth",
+   "displayName": "Face Width",
+   "category": "Head",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Face_Narrow",
+   "posTarget": "Face_Wide"
+  },
+  {
+   "id": "jawWidth",
+   "displayName": "Jaw Width",
+   "category": "Head",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Jaw_Narrow",
+   "posTarget": "Jaw_Wide"
+  },
+  {
+   "id": "chinLength",
+   "displayName": "Chin Length",
+   "category": "Head",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Chin_Short",
+   "posTarget": "Chin_Long"
+  },
+  {
+   "id": "cheekbones",
+   "displayName": "Cheekbones",
+   "category": "Head",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Cheeks_Flat",
+   "posTarget": "Cheeks_High"
+  },
+  {
+   "id": "noseWidth",
+   "displayName": "Nose Width",
+   "category": "Nose",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Nose_Narrow",
+   "posTarget": "Nose_Wide"
+  },
+  {
+   "id": "noseLength",
+   "displayName": "Nose Length",
+   "category": "Nose",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Nose_Short",
+   "posTarget": "Nose_Long"
+  },
+  {
+   "id": "noseBridge",
+   "displayName": "Nose Bridge",
+   "category": "Nose",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "NoseBridge_Low",
+   "posTarget": "NoseBridge_High"
+  },
+  {
+   "id": "noseCrooked",
+   "displayName": "Broken Nose",
+   "category": "Nose",
+   "min": 0.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "posTarget": "Nose_Broken"
+  },
+  {
+   "id": "eyeSize",
+   "displayName": "Eye Size",
+   "category": "Eyes",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Eyes_Small",
+   "posTarget": "Eyes_Large"
+  },
+  {
+   "id": "eyeSpacing",
+   "displayName": "Eye Spacing",
+   "category": "Eyes",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Eyes_Close",
+   "posTarget": "Eyes_Far"
+  },
+  {
+   "id": "eyeTilt",
+   "displayName": "Eye Tilt",
+   "category": "Eyes",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Eyes_TiltDown",
+   "posTarget": "Eyes_TiltUp"
+  },
+  {
+   "id": "browHeight",
+   "displayName": "Brow Height",
+   "category": "Eyes",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Brow_Low",
+   "posTarget": "Brow_High"
+  },
+  {
+   "id": "mouthWidth",
+   "displayName": "Mouth Width",
+   "category": "Mouth",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Mouth_Narrow",
+   "posTarget": "Mouth_Wide"
+  },
+  {
+   "id": "lipFullness",
+   "displayName": "Lip Fullness",
+   "category": "Mouth",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Lips_Thin",
+   "posTarget": "Lips_Full"
+  },
+  {
+   "id": "earSize",
+   "displayName": "Ear Size",
+   "category": "Head",
+   "min": -1.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "negTarget": "Ears_Small",
+   "posTarget": "Ears_Large"
+  },
+  {
+   "id": "age",
+   "displayName": "Age",
+   "category": "Head",
+   "min": 0.0,
+   "max": 1.0,
+   "defaultValue": 0.0,
+   "posTarget": "Age_Old"
+  }
+ ],
+ "colors": [
+  {
+   "id": "skin",
+   "displayName": "Skin Tone",
+   "parameter": "SkinTint",
+   "applyTo": [
+    "body"
+   ],
+   "defaultValue": "#c68a64",
+   "palette": [
+    "#f6d7c3",
+    "#eac0a2",
+    "#d9a57f",
+    "#c68a64",
+    "#a86e4c",
+    "#8d5524",
+    "#6b4226",
+    "#4a2c1a",
+    "#3a2215"
+   ]
+  },
+  {
+   "id": "eyes",
+   "displayName": "Eye Color",
+   "parameter": "EyeColor",
+   "applyTo": [
+    "body"
+   ],
+   "defaultValue": "#4a6b8a"
+  },
+  {
+   "id": "hair",
+   "displayName": "Hair Color",
+   "parameter": "HairColor",
+   "applyTo": [
+    "hair",
+    "facialHair",
+    "eyebrows"
+   ],
+   "defaultValue": "#2b1b10"
+  },
+  {
+   "id": "lips",
+   "displayName": "Lip Color",
+   "parameter": "LipColor",
+   "applyTo": [
+    "body"
+   ],
+   "defaultValue": "#a0625a"
+  },
+  {
+   "id": "makeup",
+   "displayName": "Eye Makeup",
+   "parameter": "MakeupColor",
+   "applyTo": [
+    "body"
+   ],
+   "defaultValue": "#000000"
+  }
+ ],
+ "slots": [
+  {
+   "id": "hair",
+   "displayName": "Hair",
+   "required": false,
+   "colorChannels": 0,
+   "colorParameters": []
+  },
+  {
+   "id": "facialHair",
+   "displayName": "Facial Hair",
+   "required": false,
+   "colorChannels": 0,
+   "colorParameters": []
+  },
+  {
+   "id": "eyebrows",
+   "displayName": "Eyebrows",
+   "required": false,
+   "colorChannels": 0,
+   "colorParameters": []
+  },
+  {
+   "id": "headwear",
+   "displayName": "Headwear",
+   "required": false,
+   "colorChannels": 2,
+   "colorParameters": [
+    "PrimaryColor",
+    "SecondaryColor"
+   ]
+  },
+  {
+   "id": "glasses",
+   "displayName": "Glasses",
+   "required": false,
+   "colorChannels": 1,
+   "colorParameters": [
+    "PrimaryColor"
+   ]
+  },
+  {
+   "id": "top",
+   "displayName": "Top",
+   "required": true,
+   "colorChannels": 3,
+   "colorParameters": [
+    "PrimaryColor",
+    "SecondaryColor",
+    "TertiaryColor"
+   ]
+  },
+  {
+   "id": "jacket",
+   "displayName": "Jacket",
+   "required": false,
+   "colorChannels": 3,
+   "colorParameters": [
+    "PrimaryColor",
+    "SecondaryColor",
+    "TertiaryColor"
+   ]
+  },
+  {
+   "id": "gloves",
+   "displayName": "Gloves",
+   "required": false,
+   "colorChannels": 1,
+   "colorParameters": [
+    "PrimaryColor"
+   ]
+  },
+  {
+   "id": "legs",
+   "displayName": "Legs",
+   "required": true,
+   "colorChannels": 3,
+   "colorParameters": [
+    "PrimaryColor",
+    "SecondaryColor",
+    "TertiaryColor"
+   ]
+  },
+  {
+   "id": "shoes",
+   "displayName": "Shoes",
+   "required": true,
+   "colorChannels": 2,
+   "colorParameters": [
+    "PrimaryColor",
+    "SecondaryColor"
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "id": "hair_buzz",
+   "slot": "hair",
+   "displayName": "Buzz Cut",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_hair_buzz.SK_hair_buzz",
+    "female": "/Game/Characters/Female/Parts/SK_hair_buzz.SK_hair_buzz"
+   },
+   "minRank": 0,
+   "default": true
+  },
+  {
+   "id": "hair_slick",
+   "slot": "hair",
+   "displayName": "Slicked Back",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_hair_slick.SK_hair_slick",
+    "female": "/Game/Characters/Female/Parts/SK_hair_slick.SK_hair_slick"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "hair_mohawk",
+   "slot": "hair",
+   "displayName": "Mohawk",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_hair_mohawk.SK_hair_mohawk",
+    "female": "/Game/Characters/Female/Parts/SK_hair_mohawk.SK_hair_mohawk"
+   },
+   "minRank": 20
+  },
+  {
+   "id": "hair_ponytail",
+   "slot": "hair",
+   "displayName": "Ponytail",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_hair_ponytail.SK_hair_ponytail",
+    "female": "/Game/Characters/Female/Parts/SK_hair_ponytail.SK_hair_ponytail"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "hair_bob",
+   "slot": "hair",
+   "displayName": "Bob",
+   "bodies": [
+    "female"
+   ],
+   "mesh": {
+    "female": "/Game/Characters/Female/Parts/SK_hair_bob.SK_hair_bob"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "beard_stubble",
+   "slot": "facialHair",
+   "displayName": "Stubble",
+   "bodies": [
+    "male"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_beard_stubble.SK_beard_stubble"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "beard_full",
+   "slot": "facialHair",
+   "displayName": "Full Beard",
+   "bodies": [
+    "male"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_beard_full.SK_beard_full"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "goatee",
+   "slot": "facialHair",
+   "displayName": "Goatee",
+   "bodies": [
+    "male"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_goatee.SK_goatee"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "brows_default",
+   "slot": "eyebrows",
+   "displayName": "Natural",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_brows_default.SK_brows_default",
+    "female": "/Game/Characters/Female/Parts/SK_brows_default.SK_brows_default"
+   },
+   "minRank": 0,
+   "default": true
+  },
+  {
+   "id": "brows_thin",
+   "slot": "eyebrows",
+   "displayName": "Thin",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_brows_thin.SK_brows_thin",
+    "female": "/Game/Characters/Female/Parts/SK_brows_thin.SK_brows_thin"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "cap_baseball",
+   "slot": "headwear",
+   "displayName": "Baseball Cap",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_cap_baseball.SK_cap_baseball",
+    "female": "/Game/Characters/Female/Parts/SK_cap_baseball.SK_cap_baseball"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "beanie",
+   "slot": "headwear",
+   "displayName": "Beanie",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_beanie.SK_beanie",
+    "female": "/Game/Characters/Female/Parts/SK_beanie.SK_beanie"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "helmet_swat",
+   "slot": "headwear",
+   "displayName": "Tactical Helmet",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_helmet_swat.SK_helmet_swat",
+    "female": "/Game/Characters/Female/Parts/SK_helmet_swat.SK_helmet_swat"
+   },
+   "minRank": 40,
+   "factions": [
+    "Enforcer"
+   ]
+  },
+  {
+   "id": "glasses_aviator",
+   "slot": "glasses",
+   "displayName": "Aviators",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_glasses_aviator.SK_glasses_aviator",
+    "female": "/Game/Characters/Female/Parts/SK_glasses_aviator.SK_glasses_aviator"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "tshirt",
+   "slot": "top",
+   "displayName": "T-Shirt",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_tshirt.SK_tshirt",
+    "female": "/Game/Characters/Female/Parts/SK_tshirt.SK_tshirt"
+   },
+   "minRank": 0,
+   "default": true
+  },
+  {
+   "id": "tanktop",
+   "slot": "top",
+   "displayName": "Tank Top",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_tanktop.SK_tanktop",
+    "female": "/Game/Characters/Female/Parts/SK_tanktop.SK_tanktop"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "shirt_button",
+   "slot": "top",
+   "displayName": "Button Shirt",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_shirt_button.SK_shirt_button",
+    "female": "/Game/Characters/Female/Parts/SK_shirt_button.SK_shirt_button"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "hoodie",
+   "slot": "jacket",
+   "displayName": "Hoodie",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_hoodie.SK_hoodie",
+    "female": "/Game/Characters/Female/Parts/SK_hoodie.SK_hoodie"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "jacket_leather",
+   "slot": "jacket",
+   "displayName": "Leather Jacket",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_jacket_leather.SK_jacket_leather",
+    "female": "/Game/Characters/Female/Parts/SK_jacket_leather.SK_jacket_leather"
+   },
+   "minRank": 10
+  },
+  {
+   "id": "vest_tactical",
+   "slot": "jacket",
+   "displayName": "Tactical Vest",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_vest_tactical.SK_vest_tactical",
+    "female": "/Game/Characters/Female/Parts/SK_vest_tactical.SK_vest_tactical"
+   },
+   "minRank": 25,
+   "factions": [
+    "Enforcer"
+   ]
+  },
+  {
+   "id": "jacket_gang",
+   "slot": "jacket",
+   "displayName": "Gang Colors",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_jacket_gang.SK_jacket_gang",
+    "female": "/Game/Characters/Female/Parts/SK_jacket_gang.SK_jacket_gang"
+   },
+   "minRank": 25,
+   "factions": [
+    "Criminal"
+   ]
+  },
+  {
+   "id": "coat_long",
+   "slot": "jacket",
+   "displayName": "Long Coat",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_coat_long.SK_coat_long",
+    "female": "/Game/Characters/Female/Parts/SK_coat_long.SK_coat_long"
+   },
+   "minRank": 60
+  },
+  {
+   "id": "gloves_fingerless",
+   "slot": "gloves",
+   "displayName": "Fingerless Gloves",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_gloves_fingerless.SK_gloves_fingerless",
+    "female": "/Game/Characters/Female/Parts/SK_gloves_fingerless.SK_gloves_fingerless"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "jeans",
+   "slot": "legs",
+   "displayName": "Jeans",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_jeans.SK_jeans",
+    "female": "/Game/Characters/Female/Parts/SK_jeans.SK_jeans"
+   },
+   "minRank": 0,
+   "default": true
+  },
+  {
+   "id": "cargo",
+   "slot": "legs",
+   "displayName": "Cargo Pants",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_cargo.SK_cargo",
+    "female": "/Game/Characters/Female/Parts/SK_cargo.SK_cargo"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "shorts",
+   "slot": "legs",
+   "displayName": "Shorts",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_shorts.SK_shorts",
+    "female": "/Game/Characters/Female/Parts/SK_shorts.SK_shorts"
+   },
+   "minRank": 0
+  },
+  {
+   "id": "sneakers",
+   "slot": "shoes",
+   "displayName": "Sneakers",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_sneakers.SK_sneakers",
+    "female": "/Game/Characters/Female/Parts/SK_sneakers.SK_sneakers"
+   },
+   "minRank": 0,
+   "default": true
+  },
+  {
+   "id": "boots_combat",
+   "slot": "shoes",
+   "displayName": "Combat Boots",
+   "bodies": [
+    "male",
+    "female"
+   ],
+   "mesh": {
+    "male": "/Game/Characters/Male/Parts/SK_boots_combat.SK_boots_combat",
+    "female": "/Game/Characters/Female/Parts/SK_boots_combat.SK_boots_combat"
+   },
+   "minRank": 15
+  }
+ ],
+ "regions": [
+  {
+   "id": "face",
+   "displayName": "Face",
+   "uv": [
+    0.0,
+    0.0,
+    0.25,
+    0.25
+   ]
+  },
+  {
+   "id": "neck",
+   "displayName": "Neck",
+   "uv": [
+    0.25,
+    0.0,
+    0.25,
+    0.125
+   ]
+  },
+  {
+   "id": "chest",
+   "displayName": "Chest",
+   "uv": [
+    0.0,
+    0.25,
+    0.25,
+    0.25
+   ]
+  },
+  {
+   "id": "stomach",
+   "displayName": "Stomach",
+   "uv": [
+    0.25,
+    0.25,
+    0.25,
+    0.25
+   ]
+  },
+  {
+   "id": "back",
+   "displayName": "Back",
+   "uv": [
+    0.5,
+    0.0,
+    0.5,
+    0.5
+   ]
+  },
+  {
+   "id": "leftUpperArm",
+   "displayName": "Left Upper Arm",
+   "uv": [
+    0.0,
+    0.5,
+    0.125,
+    0.25
+   ],
+   "mirrorRegion": "rightUpperArm"
+  },
+  {
+   "id": "rightUpperArm",
+   "displayName": "Right Upper Arm",
+   "uv": [
+    0.125,
+    0.5,
+    0.125,
+    0.25
+   ],
+   "mirrorRegion": "leftUpperArm"
+  },
+  {
+   "id": "leftForearm",
+   "displayName": "Left Forearm",
+   "uv": [
+    0.25,
+    0.5,
+    0.125,
+    0.25
+   ],
+   "mirrorRegion": "rightForearm"
+  },
+  {
+   "id": "rightForearm",
+   "displayName": "Right Forearm",
+   "uv": [
+    0.375,
+    0.5,
+    0.125,
+    0.25
+   ],
+   "mirrorRegion": "leftForearm"
+  },
+  {
+   "id": "leftHand",
+   "displayName": "Left Hand",
+   "uv": [
+    0.0,
+    0.75,
+    0.125,
+    0.125
+   ],
+   "mirrorRegion": "rightHand"
+  },
+  {
+   "id": "rightHand",
+   "displayName": "Right Hand",
+   "uv": [
+    0.125,
+    0.75,
+    0.125,
+    0.125
+   ],
+   "mirrorRegion": "leftHand"
+  },
+  {
+   "id": "leftLeg",
+   "displayName": "Left Leg",
+   "uv": [
+    0.5,
+    0.5,
+    0.25,
+    0.5
+   ],
+   "mirrorRegion": "rightLeg"
+  },
+  {
+   "id": "rightLeg",
+   "displayName": "Right Leg",
+   "uv": [
+    0.75,
+    0.5,
+    0.25,
+    0.5
+   ],
+   "mirrorRegion": "leftLeg"
+  }
+ ],
+ "decals": [
+  {
+   "id": "tat_skull",
+   "displayName": "Skull",
+   "texture": "/Game/Characters/Tattoos/T_tat_skull.T_tat_skull",
+   "minRank": 0
+  },
+  {
+   "id": "tat_rose",
+   "displayName": "Rose",
+   "texture": "/Game/Characters/Tattoos/T_tat_rose.T_tat_rose",
+   "minRank": 0
+  },
+  {
+   "id": "tat_tribal",
+   "displayName": "Tribal Band",
+   "texture": "/Game/Characters/Tattoos/T_tat_tribal.T_tat_tribal",
+   "minRank": 0,
+   "regions": [
+    "leftUpperArm",
+    "rightUpperArm",
+    "leftForearm",
+    "rightForearm",
+    "leftLeg",
+    "rightLeg",
+    "neck"
+   ]
+  },
+  {
+   "id": "tat_script",
+   "displayName": "Script",
+   "texture": "/Game/Characters/Tattoos/T_tat_script.T_tat_script",
+   "minRank": 0
+  },
+  {
+   "id": "tat_stars",
+   "displayName": "Stars",
+   "texture": "/Game/Characters/Tattoos/T_tat_stars.T_tat_stars",
+   "minRank": 0
+  },
+  {
+   "id": "tat_barcode",
+   "displayName": "Barcode",
+   "texture": "/Game/Characters/Tattoos/T_tat_barcode.T_tat_barcode",
+   "minRank": 0,
+   "regions": [
+    "neck",
+    "leftForearm",
+    "rightForearm"
+   ]
+  },
+  {
+   "id": "tat_teardrop",
+   "displayName": "Teardrop",
+   "texture": "/Game/Characters/Tattoos/T_tat_teardrop.T_tat_teardrop",
+   "minRank": 0,
+   "regions": [
+    "face"
+   ]
+  },
+  {
+   "id": "tat_warpaint",
+   "displayName": "War Paint",
+   "texture": "/Game/Characters/Tattoos/T_tat_warpaint.T_tat_warpaint",
+   "minRank": 30,
+   "regions": [
+    "face"
+   ]
+  },
+  {
+   "id": "tat_dragon",
+   "displayName": "Dragon",
+   "texture": "/Game/Characters/Tattoos/T_tat_dragon.T_tat_dragon",
+   "minRank": 50,
+   "regions": [
+    "back",
+    "chest",
+    "leftLeg",
+    "rightLeg"
+   ]
+  },
+  {
+   "id": "tat_badge",
+   "displayName": "Enforcer Badge",
+   "texture": "/Game/Characters/Tattoos/T_tat_badge.T_tat_badge",
+   "minRank": 10,
+   "factions": [
+    "Enforcer"
+   ]
+  },
+  {
+   "id": "tat_crew",
+   "displayName": "Crew Mark",
+   "texture": "/Game/Characters/Tattoos/T_tat_crew.T_tat_crew",
+   "minRank": 10,
+   "factions": [
+    "Criminal"
+   ]
+  }
+ ]
+}

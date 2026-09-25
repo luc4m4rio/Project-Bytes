@@ -211,6 +211,45 @@ void UBytesAccountSubsystem::CreateCharacter(const FString& Name, EBytesFaction 
 		});
 }
 
+void UBytesAccountSubsystem::UpdateAppearance(const FString& CharacterIdOrName, const FString& AppearanceJson, FBytesDone Done)
+{
+	const FBytesCharacter* Character = FindCharacter(CharacterIdOrName);
+	if (!Character)
+	{
+		Complete(Done, false, FString::Printf(TEXT("No character '%s' on this account"), *CharacterIdOrName));
+		return;
+	}
+
+	const TSharedPtr<FJsonObject> Body = MakeBody();
+	Body->SetStringField(TEXT("appearance"), AppearanceJson);
+
+	TWeakObjectPtr<ThisClass> WeakThis(this);
+	BytesHttp::Send(TEXT("POST"), FString::Printf(TEXT("/v1/characters/%s/appearance"), *Character->CharacterId), Body, AuthHeaders(),
+		[WeakThis, Done](const FBytesHttpResult& Result)
+		{
+			ThisClass* This = WeakThis.Get();
+			if (!This)
+			{
+				return;
+			}
+			FBytesCharacterResponse Response;
+			if (!Result.bOk || !Result.Parse(Response))
+			{
+				This->SetError(Result.Error, Result.Reasons);
+				Complete(Done, false, Result.Describe());
+				return;
+			}
+			if (FBytesCharacter* Existing = This->Characters.FindByPredicate(
+				[&Response](const FBytesCharacter& C) { return C.CharacterId == Response.Character.CharacterId; }))
+			{
+				*Existing = Response.Character;
+			}
+			This->ClearError();
+			This->Broadcast();
+			Complete(Done, true, FString());
+		});
+}
+
 void UBytesAccountSubsystem::DeleteCharacter(const FString& CharacterIdOrName, FBytesDone Done)
 {
 	const FBytesCharacter* Character = FindCharacter(CharacterIdOrName);
@@ -441,6 +480,11 @@ void UBytesAccountSubsystem::K2_RefreshCharacters(FBytesOnResult OnComplete)
 void UBytesAccountSubsystem::K2_CreateCharacter(const FString& Name, EBytesFaction Faction, const FString& Appearance, FBytesOnResult OnComplete)
 {
 	CreateCharacter(Name, Faction, Appearance, Wrap(OnComplete));
+}
+
+void UBytesAccountSubsystem::K2_UpdateAppearance(const FString& CharacterId, const FString& AppearanceJson, FBytesOnResult OnComplete)
+{
+	UpdateAppearance(CharacterId, AppearanceJson, Wrap(OnComplete));
 }
 
 void UBytesAccountSubsystem::K2_DeleteCharacter(const FString& CharacterId, FBytesOnResult OnComplete)

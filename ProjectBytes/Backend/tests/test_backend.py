@@ -13,6 +13,12 @@ import server as bb  # noqa: E402
 SERVER_KEY = "test-server-key"
 
 
+def _look(**overrides):
+    base = {"version": 1, "body": "male", "morphs": {}, "colors": {}, "parts": {}, "tattoos": []}
+    base.update(overrides)
+    return json.dumps(base)
+
+
 class Client:
     def __init__(self, base):
         self.base = base
@@ -189,6 +195,27 @@ class BackendTest(unittest.TestCase):
         status, body = self.client.call("POST", "/v1/districts/join", {"characterId": cid, "districtId": "fightclub"})
         self.assertEqual(status, 503, body)
         self.assertEqual(reg["maxPlayers"], 1)
+
+    def test_create_and_update(self):
+        self.login()
+        status, body = self.client.call("POST", "/v1/characters", {
+            "name": "Inked", "faction": "Criminal",
+            "appearance": _look(tattoos=[{"decal": "tat_rose", "region": "chest"}])})
+        self.assertEqual(status, 200, body)
+        char = body["character"]
+        self.assertEqual(json.loads(char["appearance"])["parts"]["top"]["id"], "tshirt")
+
+        status, body = self.client.call("POST", "/v1/characters", {
+            "name": "Cheater", "faction": "Criminal", "appearance": _look(parts={"jacket": {"id": "coat_long"}})})
+        self.assertEqual((status, body["reasons"]), (400, ["Long Coat unlocks at rank 60"]))
+
+        path = f"/v1/characters/{char['characterId']}/appearance"
+        coat = _look(parts={"jacket": {"id": "coat_long"}})
+        self.assertEqual(self.client.call("POST", path, {"appearance": coat})[0], 400)
+        self.client.call("POST", "/v1/dev/characters/set", {"characterId": char["characterId"], "rank": 60})
+        status, body = self.client.call("POST", path, {"appearance": coat})
+        self.assertEqual(status, 200, body)
+        self.assertEqual(json.loads(body["character"]["appearance"])["parts"]["jacket"]["id"], "coat_long")
 
     def test_stale_servers_are_reaped(self):
         reg = self.register_server("financial", 7777)

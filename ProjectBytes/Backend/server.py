@@ -39,6 +39,8 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
+import appearance as appearance_rules
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CONFIG_PATH = os.path.join(HERE, "config.json")
 
@@ -53,6 +55,7 @@ DEFAULT_CONFIG = {
     "host": "127.0.0.1",
     "port": 8080,
     "database": "Saved/bytes.db",
+    "appearanceCatalog": "../Content/Data/AppearanceCatalog.json",
     "devMode": True,
     "serverKey": "dev-server-key-change-me",
     "sessionTtlSeconds": 7 * 24 * 3600,
@@ -199,6 +202,8 @@ def load_config(path: str | None) -> dict:
 
     if cfg["database"] != ":memory:" and not os.path.isabs(cfg["database"]):
         cfg["database"] = os.path.join(base_dir, cfg["database"])
+    if cfg["appearanceCatalog"] and not os.path.isabs(cfg["appearanceCatalog"]):
+        cfg["appearanceCatalog"] = os.path.normpath(os.path.join(base_dir, cfg["appearanceCatalog"]))
 
     districts = {}
     for d in cfg["districts"]:
@@ -281,6 +286,14 @@ class Backend:
         # their next heartbeat and simply register again.
         self.servers: dict[str, dict] = {}
         self.ticket_key = self._load_or_create_ticket_key()
+        # Same catalog the game ships (Content/Data/AppearanceCatalog.json): the backend is the authority on
+        # which parts/tattoos a character has unlocked.
+        self.catalog = None
+        if cfg.get("appearanceCatalog") and os.path.exists(cfg["appearanceCatalog"]):
+            self.catalog = appearance_rules.Catalog.load(cfg["appearanceCatalog"])
+        elif cfg.get("appearanceCatalog"):
+            print(f"[backend] warning: appearance catalog not found at {cfg['appearanceCatalog']}; "
+                  "appearances will only be size-checked", flush=True)
 
     # -- helpers ------------------------------------------------------------------------------------
 
@@ -460,9 +473,7 @@ class Backend:
         faction = canon(body.get("faction"), FACTIONS, "faction")
         if not faction:
             raise ApiError(400, f"Pick a faction: {', '.join(FACTIONS)}")
-        appearance = body.get("appearance") or ""
-        if not isinstance(appearance, str) or len(appearance) > 16384:
-            raise ApiError(400, "appearance must be a string of at most 16 KB")
+        appearance = self._validate_appearance(body.get("appearance"), rank=1, faction=faction)
         with self.lock:
             count = self.db.execute("SELECT COUNT(*) FROM characters WHERE account_id = ?",
                                     (account["id"],)).fetchone()[0]
@@ -479,6 +490,29 @@ class Backend:
             except sqlite3.IntegrityError:
                 raise ApiError(409, f"The name '{name}' is already taken")
             row = self.db.execute("SELECT * FROM characters WHERE id = ?", (character_id,)).fetchone()
+        return {"character": self._character_json(row)}
+
+    def _validate_appearance(self, raw, rank: int, faction: str) -> str:
+        raw = raw or ""
+        if not isinstance(raw, str) or len(raw.encode("utf-8")) > appearance_rules.MAX_APPEARANCE_BYTES:
+            raise ApiError(400, f"appearance must be a string of at most {appearance_rules.MAX_APPEARANCE_BYTES} bytes")
+        if not self.catalog:
+            return raw
+        normalized, errors = appearance_rules.validate(self.catalog, raw, rank, faction)
+        if errors:
+            raise ApiError(400, "That look isn't allowed", errors)
+        return normalized
+
+    def update_appearance(self, account, character_id: str, body: dict) -> dict:
+        """Re-edit an existing character (APB's wardrobe). Validated against the character's current rank."""
+        with self.lock:
+            row = self._owned_character(account, character_id)
+            if row["online_instance"]:
+                raise ApiError(409, f"{row['name']} is in {row['online_instance']}; leave the district to change looks")
+            appearance = self._validate_appearance(body.get("appearance"), row["rank"], row["faction"])
+            self.db.execute("UPDATE characters SET appearance = ? WHERE id = ?", (appearance, row["id"]))
+            self.db.commit()
+            row = self.db.execute("SELECT * FROM characters WHERE id = ?", (row["id"],)).fetchone()
         return {"character": self._character_json(row)}
 
     def delete_character(self, account, character_id: str) -> dict:
@@ -765,6 +799,8 @@ ROUTES = [
     ("GET", r"/v1/auth/me", lambda b, r: b.me(b.authenticate(r.headers))),
     ("GET", r"/v1/characters", lambda b, r: b.list_characters(b.authenticate(r.headers))),
     ("POST", r"/v1/characters", lambda b, r: b.create_character(b.authenticate(r.headers), r.body)),
+    ("POST", r"/v1/characters/(?P<cid>[A-Za-z0-9_]+)/appearance",
+     lambda b, r: b.update_appearance(b.authenticate(r.headers), r.params["cid"], r.body)),
     ("DELETE", r"/v1/characters/(?P<cid>[A-Za-z0-9_]+)",
      lambda b, r: b.delete_character(b.authenticate(r.headers), r.params["cid"])),
     ("GET", r"/v1/districts", lambda b, r: b.list_districts(b.authenticate(r.headers), _q(r, "characterId"))),
