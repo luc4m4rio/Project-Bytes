@@ -34,6 +34,7 @@ public:
 	virtual FString InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal = TEXT("")) override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	virtual void Logout(AController* Exiting) override;
+	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
 
 	/** Grant standing (rank XP) and money; persisted through the backend when managed. */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Bytes")

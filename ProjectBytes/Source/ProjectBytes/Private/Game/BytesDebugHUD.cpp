@@ -3,6 +3,7 @@
 #include "Appearance/BytesCharacterCreator.h"
 #include "Client/BytesAccountSubsystem.h"
 #include "Core/BytesSettings.h"
+#include "Game/BytesCharacter.h"
 #include "Game/BytesPlayerState.h"
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
@@ -160,6 +161,13 @@ void ABytesDebugHUD::DrawDistrict(UBytesAccountSubsystem* Account)
 	{
 		Line(FString::Printf(TEXT("You: %s  standing %d  $%d"), *Own->GetIdentity().Name, Own->Standing, Own->Money));
 	}
+	if (const ABytesCharacter* Body = PlayerOwner ? PlayerOwner->GetPawn<ABytesCharacter>() : nullptr)
+	{
+		const UBytesCharacterMovementComponent* Movement = Body->GetBytesMovement();
+		Line(FString::Printf(TEXT("Movement: %s  %s%s  %.0f cm/s  (feel: %s)"), *StaticEnum<EBytesGait>()->GetNameStringByValue(static_cast<int64>(Body->GetGait())),
+			Body->IsAiming() ? TEXT("aiming") : TEXT("free"), Movement->IsCrouching() ? TEXT(" crouched") : TEXT(""), Body->GetVelocity().Size2D(),
+			*StaticEnum<EBytesMovementFeel>()->GetNameStringByValue(static_cast<int64>(Movement->GetFeel()))), Dim);
+	}
 
 	CursorY += 8.f;
 	Line(FString::Printf(TEXT("Players (%d)"), GameState ? GameState->PlayerArray.Num() : 0), Title);
@@ -182,6 +190,7 @@ void ABytesDebugHUD::DrawDistrict(UBytesAccountSubsystem* Account)
 
 	CursorY += 8.f;
 	Line(TEXT("bytes.Leave   bytes.Join <district>   bytes.Dev.AwardStanding 5000   bytes.Dev.ServerThreat Gold"), Dim);
+	Line(TEXT("bytes.Move.Feel Snappy|Responsive|Realistic   bytes.Anim.DebugTrajectory 1   bytes.HUD 0"), Dim);
 }
 
 void ABytesDebugHUD::DrawCreator(UBytesCharacterCreator* Creator)

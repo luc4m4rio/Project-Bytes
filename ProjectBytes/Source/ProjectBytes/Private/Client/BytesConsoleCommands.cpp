@@ -2,6 +2,7 @@
 
 #include "Client/BytesAccountSubsystem.h"
 #include "Core/BytesSettings.h"
+#include "Game/BytesCharacter.h"
 #include "Game/BytesPlayerController.h"
 #include "ProjectBytes.h"
 #include "Engine/GameInstance.h"
@@ -252,5 +253,34 @@ namespace BytesConsole
 					PC->ServerDevSetThreat(Threat);
 				}
 			}
+		});
+
+	FCommand CmdMoveFeel(TEXT("bytes.Move.Feel"), TEXT("bytes.Move.Feel <Snappy|Responsive|Realistic> - compare movement feels live (dev)"),
+		[](const TArray<FString>& Args, UWorld* World)
+		{
+			ABytesPlayerController* PC = GetLocalController(World);
+			ABytesCharacter* BytesCharacter = PC ? PC->GetPawn<ABytesCharacter>() : nullptr;
+			if (!BytesCharacter || !NeedArgs(Args, 1, TEXT("bytes.Move.Feel <Snappy|Responsive|Realistic>")))
+			{
+				return;
+			}
+			const UEnum* Enum = StaticEnum<EBytesMovementFeel>();
+			int64 Value = INDEX_NONE;
+			for (int32 Index = 0; Index < Enum->NumEnums() - 1; ++Index)
+			{
+				if (Enum->GetNameStringByIndex(Index).Equals(Args[0], ESearchCase::IgnoreCase))
+				{
+					Value = Enum->GetValueByIndex(Index);
+				}
+			}
+			if (Value == INDEX_NONE)
+			{
+				UE_LOG(LogBytes, Warning, TEXT("Unknown feel '%s'"), *Args[0]);
+				return;
+			}
+			// Same numbers on both sides, or the server would correct every predicted move.
+			BytesCharacter->GetBytesMovement()->ApplyFeel(static_cast<EBytesMovementFeel>(Value));
+			PC->ServerDevSetMovementFeel(static_cast<uint8>(Value));
+			UE_LOG(LogBytes, Display, TEXT("Movement feel: %s"), *Args[0]);
 		});
 }

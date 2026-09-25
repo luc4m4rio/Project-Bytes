@@ -29,6 +29,16 @@ FBytesDistrictRequirements ABytesDistrictGameMode::GetActiveRequirements() const
 	return Server ? Server->GetRequirements() : UBytesSettings::Get()->OfflineRequirements;
 }
 
+UClass* ABytesDistrictGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
+{
+	// Project Settings > Game > Project Bytes Online > District Pawn Class, if set; else the game mode default.
+	if (UClass* PawnClass = UBytesSettings::Get()->DistrictPawnClass.LoadSynchronous())
+	{
+		return PawnClass;
+	}
+	return Super::GetDefaultPawnClassForController_Implementation(InController);
+}
+
 // ---- Login pipeline -----------------------------------------------------------------------------
 
 void ABytesDistrictGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)

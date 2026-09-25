@@ -220,6 +220,94 @@ yet is skipped, so the system already runs. To make the preview show real charac
 | `Game/BytesCharacter` | Playable `ACharacter` with the appearance component. Once your maps have floors, use a Blueprint child as the district game mode's `DefaultPawnClass`. |
 | `Backend/appearance.py` | Server-side validation. `POST /v1/characters/{id}/appearance` re-edits a look while the character is offline. |
 
+## Third-person movement and motion matching
+
+This is gameplay-first motion matching. The **capsule leads and the animation follows**. Movement is
+plain, network-predicted `CharacterMovement` with no root motion, so input response doesn't depend on
+the animation. Motion matching then picks the clip that best matches what the capsule is doing, and
+warping covers the small remaining mismatch. It feels tight like APB, but you still see starts, foot
+plants and pivots.
+
+### Feel presets
+
+`UBytesCharacterMovementComponent` has three presets. Switch between them live with
+`bytes.Move.Feel <name>`.
+
+| Feel | Run speed / accel / braking | Turn rate | MM blend | Character |
+|---|---|---|---|---|
+| Snappy | 450 / 4096 / 4096 | 1080°/s | 0.10 s | ~APB, near-instant |
+| **Responsive** (default) | 420 / 2400 / 2600 | 720°/s | 0.18 s | reaches full speed in ~0.18 s and stops in ~0.16 s, fluid but quick |
+| Realistic | 400 / 800 / 1000 | 400°/s | 0.30 s | ~Game Animation Sample, heavy |
+
+Each preset sets walk (Ctrl, hold), run, sprint (Shift, hold) and crouch (C, toggle) separately.
+Aiming (right mouse, hold) switches to strafing: the character faces the camera and moves 15% slower.
+Sprinting isn't allowed while aiming or crouched. To fine-tune a preset, pick it in a Blueprint child
+of the character's movement component, then edit the *Tuning* numbers.
+
+### What is replicated, and why
+
+Motion matching runs locally on every machine, and **no pose data goes over the network**. Remote
+players only look right if every machine gives the matcher the same inputs:
+
+| Input | Owner | Server | Other players |
+|---|---|---|---|
+| Position, velocity, rotation, crouch | predicted | authoritative | engine movement replication |
+| Sprint / walk / aim intent | predicted | sent with each move in the compressed flags, so there are no corrections when you tap Shift | `ReplicatedGait`, `bReplicatedAiming` (simulated proxies only) |
+| **Acceleration (input intent)** | local | from moves | `ReplicatedAcceleration`: 3 bytes, the same scheme as Lyra, kept through `SimulateMovement` |
+| Aim pitch | local | from moves | engine (`GetBaseAimRotation`) |
+
+The acceleration row is the important one. The engine normally doesn't send acceleration to other
+players' copies, so their trajectory can only be guessed from velocity. With it, motion matching on a
+remote player sees a stop or a pivot as soon as the player starts it, rather than a few frames later.
+
+On dedicated servers the mesh only ticks montages, so motion matching costs the server nothing.
+
+### Building the motion matching AnimBP
+
+This part needs assets, which can't be made in code. The fastest route is Epic's free **Game Animation
+Sample** (Fab), which has a full set of motion matching locomotion animations and databases. Migrate
+its character, animations and databases into this project, or retarget them.
+
+1. The project already enables the **PoseSearch**, **Chooser**, **AnimationWarping** and
+   **AnimationLocomotionLibrary** plugins, plus **EnhancedInput**.
+2. Create an Animation Blueprint for your skeleton and set its parent class to
+   **`BytesAnimInstance`**. It provides everything below as ready-to-read properties.
+3. **Databases.** Group them by `Gait` (Walk/Run/Sprint), `Stance`, and `bIsAiming` (strafe sets
+   versus facing-movement sets), plus idles, starts, stops, pivots and jumps/lands. A **Chooser** table
+   keyed on `Gait`, `Stance`, `bIsAiming`, `bIsInAir` and `LocomotionState` returns the databases to
+   search.
+4. **Anim graph**, as in the Game Animation Sample:
+   `Motion Matching` (databases from the chooser, trajectory from the engine's trajectory generation,
+   **Blend Time bound to `MotionMatchingBlendTime`**) → `Orientation Warping` (angle =
+   `MovementDirectionAngle`, alpha = `OrientationWarpingAlpha`) → `Stride Warping` (speed = `Speed`,
+   alpha = `StrideWarpingAlpha`) → foot IK. Then add an aim offset driven by `AimPitch`/`AimYaw`.
+5. **Settings for a responsive feel:**
+   - Schema: future trajectory samples at about 0.33, 0.66 and 1.0 s plus one past sample at -0.2 s.
+     Weight trajectory **2-3× higher than pose** so input wins over pose continuity.
+   - Keep the database *continuing pose cost bias* near 0. Negative values make the matcher cling to
+     the current clip, which feels laggy.
+   - Search every update (don't throttle the search).
+   - If you use root offset (letting the mesh lag the capsule), keep the maximum rotation offset small
+     so the body never visibly trails your input.
+6. Make a Blueprint child of **`BytesCharacter`** with your mesh and this AnimBP. Select it in
+   *Project Settings → Game → Project Bytes Online → District Pawn Class*. The appearance component
+   keeps working, because clothing parts follow the body with leader pose.
+
+To test before you have maps: on the dev map (`/Engine/Maps/Entry`), every machine spawns a lit
+160 m floor, pillars, a ledge, a step and player starts locally. Turn this off with
+`bSpawnTestFloorOnEntryMap`. `bytes.Anim.DebugTrajectory 1` draws the predicted trajectory (green),
+the past trajectory (blue) and the locomotion state above each character. To see how remote players
+look, run `Playtest up -d financial -c 2`, which opens two windows.
+
+### Code
+
+| Path | Role |
+|---|---|
+| `Movement/BytesCharacterMovementComponent` | Gaits, feel presets, predicted sprint/walk/aim flags, keeping replicated acceleration on remote copies. |
+| `Game/BytesCharacter` | TPP camera (over-the-shoulder, zooms when aiming), Enhanced Input built at runtime (replaceable by assets), replication of gait, aim and acceleration to other players. |
+| `Animation/BytesAnimInstance` | AnimBP parent: chooser keys, kinematics, warping inputs, a light trajectory prediction for the locomotion state, debug drawing. |
+| `Game/BytesTestFloorSubsystem` | Playable floor on the empty dev map. |
+
 ## Working in the editor (PIE)
 
 A server started **without** `-District=` (PIE, or `open` on a listen server) runs *unmanaged*. It

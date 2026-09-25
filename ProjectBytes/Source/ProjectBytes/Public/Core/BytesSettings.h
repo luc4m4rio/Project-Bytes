@@ -5,6 +5,8 @@
 #include "Core/BytesTypes.h"
 #include "BytesSettings.generated.h"
 
+class APawn;
+
 /**
  * Project Settings > Game > Project Bytes Online.
  * Most values can be overridden per-process on the command line, which is what Tools/bytes.py does.
@@ -41,6 +43,20 @@ public:
 	/** Requirements enforced on unmanaged (offline dev) servers, to test gating in PIE without the backend. */
 	UPROPERTY(Config, EditAnywhere, Category = "Offline Dev")
 	FBytesDistrictRequirements OfflineRequirements;
+
+	/**
+	 * Pawn players get in districts. Empty = the engine's fly-around DefaultPawn. Set it to a Blueprint child of
+	 * BytesCharacter (with your mesh + motion matching AnimBP) to play on foot.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Gameplay", meta = (AllowAbstract = "false"))
+	TSoftClassPtr<APawn> DistrictPawnClass;
+
+	/**
+	 * On the empty /Engine/Maps/Entry dev map, spawn a lit floor, landmarks and player starts locally on every
+	 * machine so movement can be playtested before real district maps exist.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Gameplay")
+	bool bSpawnTestFloorOnEntryMap = true;
 
 	virtual FName GetCategoryName() const override { return TEXT("Game"); }
 

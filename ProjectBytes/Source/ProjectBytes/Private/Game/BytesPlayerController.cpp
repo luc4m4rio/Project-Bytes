@@ -1,5 +1,6 @@
 #include "Game/BytesPlayerController.h"
 #include "Client/BytesAccountSubsystem.h"
+#include "Game/BytesCharacter.h"
 #include "Game/BytesDistrictGameMode.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -32,6 +33,17 @@ void ABytesPlayerController::ServerDevSetThreat_Implementation(EBytesThreat Thre
 	if (ABytesDistrictGameMode* GameMode = GetWorld()->GetAuthGameMode<ABytesDistrictGameMode>())
 	{
 		GameMode->SetThreat(this, Threat);
+	}
+#endif
+}
+
+void ABytesPlayerController::ServerDevSetMovementFeel_Implementation(uint8 Feel)
+{
+#if !UE_BUILD_SHIPPING
+	const ABytesCharacter* BytesCharacter = GetPawn<ABytesCharacter>();
+	if (BytesCharacter && Feel <= static_cast<uint8>(EBytesMovementFeel::Realistic))
+	{
+		BytesCharacter->GetBytesMovement()->ApplyFeel(static_cast<EBytesMovementFeel>(Feel));
 	}
 #endif
 }

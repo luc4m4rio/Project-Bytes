@@ -20,4 +20,8 @@ public:
 	/** Dev cheat (ignored in Shipping). */
 	UFUNCTION(Server, Reliable)
 	void ServerDevSetThreat(EBytesThreat Threat);
+
+	/** Dev (ignored in Shipping): switch movement feel on the server and locally so prediction stays in sync. */
+	UFUNCTION(Server, Reliable)
+	void ServerDevSetMovementFeel(uint8 Feel);
 };
