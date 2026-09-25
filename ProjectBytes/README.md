@@ -196,12 +196,15 @@ yet is skipped, so the system already runs. To make the preview show real charac
    (`Nose_Narrow`, `Nose_Wide`, …). Give clothing meshes the same body-shape targets
    (`BodyFat_Heavy`, `Muscle_Buff`, …) so they deform with the body.
 3. **Skin material.** Add vector parameters `SkinTint`, `EyeColor`, `LipColor`, `MakeupColor` and a
-   texture parameter `TattooOverlay`. Lerp the overlay's RGB over the base colour using its alpha. The
+   texture parameter `TattooOverlay`. The ink mask is **`1 - TattooOverlay.A`** (canvas drawing into a
+   render target stores inverse opacity), and the RGB is already multiplied by the mask, so the result
+   is `Base * (1 - mask) + TattooOverlay.RGB`. The
    overlay is a render target laid out like your skin UV atlas: each `regions[].uv` is `[x, y, w, h]`
    in 0..1 space. Match these to your UV layout, or lay out your UVs to match them.
 4. **Clothing materials.** Use vector parameters `PrimaryColor`, `SecondaryColor` and `TertiaryColor`
    (per slot in `slots[].colorParameters`). Hair meshes use `HairColor`.
 5. **Tattoo textures.** Use white designs on transparent backgrounds. The layer colour tints them.
+   Full mips are forced in before a tattoo is baked, so texture streaming can't bake a blurry version.
 6. **Adding content.** Adding a part, design, slider or colour is a JSON edit. Both the backend and
    the game pick it up. Restart the backend, or call `ReloadCatalog` in-game.
 
