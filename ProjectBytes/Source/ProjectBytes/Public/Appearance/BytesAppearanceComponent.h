@@ -97,7 +97,11 @@ private:
 	void RedrawTattoos();
 	void CollectMaterials(USkeletalMeshComponent* Mesh, const TArray<FString>& SlotFilter, TArray<TObjectPtr<UMaterialInstanceDynamic>>& Out) const;
 
+	void RemovePart(const FString& Slot);
+
 	FBytesAppearance Current;
+	/** Catalog paths whose package doesn't exist (art not made yet): skip instead of re-requesting every edit. */
+	mutable TSet<FString> MissingPackages;
 	FString AppliedBody;
 	TArray<FBytesTattooLayer> DrawnTattoos;
 	bool bTattoosDrawn = false;

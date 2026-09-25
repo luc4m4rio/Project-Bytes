@@ -162,15 +162,15 @@ TArray<FString> FBytesAppearanceCatalog::Validate(FBytesAppearance& InOut, int32
 		return Errors;
 	}
 
-	TMap<FString, float> Morphs;
+	TMap<FString, float> MorphValues;
 	for (const TPair<FString, float>& Pair : InOut.Morphs)
 	{
 		if (const FBytesMorphDef* Def = FindMorph(Pair.Key))
 		{
-			Morphs.Add(Pair.Key, RoundTo(FMath::Clamp(Pair.Value, Def->Min, Def->Max), 0.001f));
+			MorphValues.Add(Pair.Key, RoundTo(FMath::Clamp(Pair.Value, Def->Min, Def->Max), 0.001f));
 		}
 	}
-	InOut.Morphs = MoveTemp(Morphs);
+	InOut.Morphs = MoveTemp(MorphValues);
 
 	TMap<FString, FString> ColorValues;
 	for (const TPair<FString, FString>& Pair : InOut.Colors)

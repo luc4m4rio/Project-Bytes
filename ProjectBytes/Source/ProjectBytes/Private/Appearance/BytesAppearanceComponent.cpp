@@ -13,6 +13,7 @@
 #include "GameFramework/Pawn.h"
 #include "Kismet/KismetRenderingLibrary.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Misc/PackageName.h"
 
 namespace
 {
@@ -180,12 +181,20 @@ TArray<FSoftObjectPath> UBytesAppearanceComponent::GatherAssets(const FBytesAppe
 	{
 		return Paths;
 	}
-	auto AddPath = [&Paths](const FString& Path)
+	auto AddPath = [this, &Paths](const FString& Path)
 	{
-		if (!Path.IsEmpty())
+		if (Path.IsEmpty() || MissingPackages.Contains(Path))
 		{
-			Paths.AddUnique(FSoftObjectPath(Path));
+			return;
 		}
+		const FSoftObjectPath SoftPath(Path);
+		if (!SoftPath.ResolveObject() && !FPackageName::DoesPackageExist(SoftPath.GetLongPackageName()))
+		{
+			UE_LOG(LogBytes, Warning, TEXT("Appearance: %s doesn't exist yet, skipping"), *Path);
+			MissingPackages.Add(Path);
+			return;
+		}
+		Paths.AddUnique(SoftPath);
 	};
 	if (const FBytesBodyDef* Body = Catalog->FindBody(Appearance.Body))
 	{
@@ -295,12 +304,7 @@ void UBytesAppearanceComponent::ApplyParts(USkeletalMeshComponent* Body)
 	}
 	for (const FString& Slot : Stale)
 	{
-		if (USkeletalMeshComponent* Component = PartComponents.FindRef(Slot))
-		{
-			Component->DestroyComponent();
-		}
-		PartComponents.Remove(Slot);
-		PartMaterials.Remove(Slot);
+		RemovePart(Slot);
 	}
 
 	for (const TPair<FString, FBytesAppearancePart>& Pair : Current.Parts)
@@ -310,10 +314,7 @@ void UBytesAppearanceComponent::ApplyParts(USkeletalMeshComponent* Body)
 		USkeletalMesh* Mesh = MeshPath ? ResolveSoft<USkeletalMesh>(*MeshPath) : nullptr;
 		if (!Mesh)
 		{
-			if (MeshPath)
-			{
-				UE_LOG(LogBytes, Verbose, TEXT("Appearance: part mesh %s not found"), **MeshPath);
-			}
+			RemovePart(Pair.Key); // don't leave the previous item in this slot on screen
 			continue;
 		}
 
@@ -324,6 +325,7 @@ void UBytesAppearanceComponent::ApplyParts(USkeletalMeshComponent* Body)
 			Component = NewObject<USkeletalMeshComponent>(Owner, Name);
 			Component->SetupAttachment(Body);
 			Component->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Component->CreationMethod = EComponentCreationMethod::Instance;
 			Component->RegisterComponent();
 			Component->SetLeaderPoseComponent(Body);
 			Owner->AddInstanceComponent(Component);
@@ -337,6 +339,16 @@ void UBytesAppearanceComponent::ApplyParts(USkeletalMeshComponent* Body)
 			CollectMaterials(Component, TArray<FString>(), Materials.Materials);
 		}
 	}
+}
+
+void UBytesAppearanceComponent::RemovePart(const FString& Slot)
+{
+	if (USkeletalMeshComponent* Component = PartComponents.FindRef(Slot))
+	{
+		Component->DestroyComponent();
+	}
+	PartComponents.Remove(Slot);
+	PartMaterials.Remove(Slot);
 }
 
 void UBytesAppearanceComponent::ApplyMorphs(USkeletalMeshComponent* Body)
@@ -430,13 +442,15 @@ void UBytesAppearanceComponent::RedrawTattoos()
 	const int32 Size = FMath::Clamp(Catalog.TattooAtlasSize, 64, 4096);
 	if (!TattooTarget || TattooTarget->SizeX != Size)
 	{
-		TattooTarget = UKismetRenderingLibrary::CreateRenderTarget2D(this, Size, Size, RTF_RGBA8, FLinearColor::Transparent);
+		TattooTarget = UKismetRenderingLibrary::CreateRenderTarget2D(this, Size, Size, RTF_RGBA8, FLinearColor::Black);
 	}
 	if (!TattooTarget)
 	{
 		return;
 	}
-	UKismetRenderingLibrary::ClearRenderTarget2D(this, TattooTarget, FLinearColor::Transparent);
+	// Canvas translucent drawing writes "inverse opacity" into alpha (dstA *= 1 - srcA). So clear to alpha 1 and
+	// the skin material uses (1 - TattooOverlay.A) as the ink mask; RGB is premultiplied ink colour.
+	UKismetRenderingLibrary::ClearRenderTarget2D(this, TattooTarget, FLinearColor(0.f, 0.f, 0.f, 1.f));
 
 	if (Current.Tattoos.Num() > 0)
 	{
@@ -455,6 +469,9 @@ void UBytesAppearanceComponent::RedrawTattoos()
 				{
 					continue;
 				}
+				// Drawn once and cached, so make sure we're not baking a blurry low mip.
+				Texture->SetForceMipLevelsToBeResident(30.f);
+				Texture->WaitForStreaming();
 				const FBox2D Rect = Region->GetRect();
 				const FVector2D RegionMin = Rect.Min * CanvasSize;
 				const FVector2D RegionSize = Rect.GetSize() * CanvasSize;
