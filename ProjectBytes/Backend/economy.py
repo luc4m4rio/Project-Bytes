@@ -212,10 +212,10 @@ class Economy:
             self.db.execute("UPDATE account_wallets SET amount = MAX(0, MIN(amount + ?, 2000000000)) "
                             "WHERE account_id = ? AND currency = ?", (delta, account_id, currency_id))
 
-    def remove_item(self, entry_id: str) -> dict:
-        row = self.db.execute("SELECT * FROM inventory WHERE id = ?", (entry_id,)).fetchone()
+    def remove_item(self, entry_id: str, character_id: str) -> dict:
+        row = self.db.execute("SELECT * FROM inventory WHERE id = ? AND character_id = ?", (entry_id, character_id)).fetchone()
         if not row:
-            raise EconomyError(404, "Unknown inventory entry")
+            raise EconomyError(404, "That character doesn't own this inventory entry")
         self.db.execute("DELETE FROM inventory WHERE id = ?", (entry_id,))
         return dict(row)
 

@@ -1,6 +1,7 @@
 #include "Core/BytesSettings.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "HAL/PlatformMisc.h"
 
 FString UBytesSettings::GetBackendUrl()
 {
@@ -16,7 +17,13 @@ FString UBytesSettings::GetBackendUrl()
 
 FString UBytesSettings::GetServerKey()
 {
+	// Preferred: environment variable (launchers use it; it doesn't show up in process lists or the engine log).
+	const FString FromEnvironment = FPlatformMisc::GetEnvironmentVariable(TEXT("BYTES_SERVER_KEY"));
+	if (!FromEnvironment.IsEmpty())
+	{
+		return FromEnvironment;
+	}
 	FString Key = Get()->ServerKey;
-	FParse::Value(FCommandLine::Get(), TEXT("BytesServerKey="), Key);
+	FParse::Value(FCommandLine::Get(), TEXT("-BytesServerKey="), Key);
 	return Key;
 }

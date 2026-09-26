@@ -60,6 +60,13 @@ def _int(body: dict, key: str, default: int = 0) -> int:
         raise ApiError(400, f"{key} must be a number")
 
 
+def _query_limit(r: Request, default: int, maximum: int) -> int:
+    try:
+        return max(1, min(maximum, int((r.query.get("limit") or [str(default)])[0])))
+    except ValueError:
+        raise ApiError(400, "limit must be a number")
+
+
 def _account(b: Backend, account_id: str):
     row = b.db.execute("SELECT * FROM accounts WHERE id = ?", (account_id,)).fetchone()
     if not row:
@@ -91,12 +98,19 @@ def _ban_json(row) -> dict:
 
 
 def _check_attachment_limits(staff: dict, attachments: list[dict]) -> None:
+    """Limits apply to the TOTAL per currency / item, so repeating an attachment doesn't multiply the cap."""
     limits = staff["limits"]
+    currency_totals: dict[str, int] = {}
+    item_totals: dict[str, int] = {}
     for a in attachments:
-        if a["type"] == "currency" and "maxCurrencyAmount" in limits and a["amount"] > limits["maxCurrencyAmount"]:
-            raise ApiError(403, f"Your role may give at most {limits['maxCurrencyAmount']:,} per currency")
-        if a["type"] == "item" and "maxItemQuantity" in limits and a["quantity"] > limits["maxItemQuantity"]:
-            raise ApiError(403, f"Your role may give at most {limits['maxItemQuantity']} of an item")
+        if a["type"] == "currency":
+            currency_totals[a["currency"]] = currency_totals.get(a["currency"], 0) + a["amount"]
+        else:
+            item_totals[a["itemId"]] = item_totals.get(a["itemId"], 0) + a["quantity"]
+    if "maxCurrencyAmount" in limits and any(v > limits["maxCurrencyAmount"] for v in currency_totals.values()):
+        raise ApiError(403, f"Your role may give at most {limits['maxCurrencyAmount']:,} per currency")
+    if "maxItemQuantity" in limits and any(v > limits["maxItemQuantity"] for v in item_totals.values()):
+        raise ApiError(403, f"Your role may give at most {limits['maxItemQuantity']} of an item")
 
 
 def _kick_online(b: Backend, account_id: str, message: str, staff_name: str) -> list[str]:
@@ -127,10 +141,14 @@ def _refresh_if_online(b: Backend, character_id: str | None, account_id: str, st
 
 def login(b: Backend, r: Request) -> dict:
     username = str(r.body.get("username") or "")
+    if len(username) > 64 or len(str(r.body.get("password") or "")) > 256:
+        raise ApiError(401, "Invalid credentials")
     try:
         result = b.staff.login(username, str(r.body.get("password") or ""), str(r.body.get("code") or ""), r.client_ip)
-    except staff_rules.StaffError:
-        b.staff.audit({"staffId": "", "username": username[:32]}, "staff.login_failed", "staff", "", "", {}, r.client_ip)
+    except staff_rules.StaffError as e:
+        if e.status == 401:  # lockout responses (429) aren't logged, so a flood can't bloat the audit log
+            b.staff.audit({"staffId": "", "username": username.strip()[:32]}, "staff.login_failed", "staff", "", "", {},
+                          r.client_ip)
         raise
     b.staff.audit(result["staff"], "staff.login", "staff", result["staff"]["staffId"], "", {}, r.client_ip)
     return result
@@ -141,22 +159,18 @@ def logout(b: Backend, r: Request) -> dict:
     return {}
 
 
+def _public_staff(staff: dict) -> dict:
+    return {k: v for k, v in staff.items() if not k.startswith("_")}
+
+
 def me(b: Backend, r: Request) -> dict:
-    return {"staff": _staff(b, r, None)}
+    return {"staff": _public_staff(_staff(b, r, None))}
 
 
 def change_password(b: Backend, r: Request) -> dict:
     staff = _staff(b, r, None)
-    with b.lock:
-        row = b.db.execute("SELECT * FROM staff WHERE id = ?", (staff["staffId"],)).fetchone()
-        if not b.staff._hash(str(r.body.get("current") or ""), row["pw_salt"]) == row["pw_hash"]:
-            raise ApiError(403, "Current password is wrong")
-        new = str(r.body.get("new") or "")
-        b.staff.validate_password(new)
-        salt = secrets.token_hex(16)
-        b.db.execute("UPDATE staff SET pw_salt = ?, pw_hash = ? WHERE id = ?", (salt, b.staff._hash(new, salt), staff["staffId"]))
-        b.db.commit()
-    _audit(b, staff, r, "staff.password_changed", "staff", staff["staffId"])
+    b.staff.change_password(staff, str(r.body.get("current") or ""), str(r.body.get("new") or ""), r.client_ip)
+    _audit(b, staff, r, "staff.password_changed", "staff", staff["staffId"], "", {"otherSessionsRevoked": True})
     return {}
 
 
@@ -193,7 +207,8 @@ def overview(b: Backend, r: Request) -> dict:
             recent = [b.staff.audit_row_json(x) for x in
                       b.db.execute("SELECT * FROM audit_log ORDER BY seq DESC LIMIT 12").fetchall()]
     deployments = b.orchestrator.list()
-    return {"stats": stats, "districts": [dict(v, displayName=b.districts.get(k, {}).get("displayName", k))
+    import server as server_module
+    return {"securityWarnings": server_module.security_warnings(b.cfg), "stats": stats, "districts": [dict(v, displayName=b.districts.get(k, {}).get("displayName", k))
                                           for k, v in sorted(per_district.items())],
             "deployments": {"running": sum(1 for d in deployments if d["status"] in ("starting", "running")),
                             "configured": b.orchestrator.configured()},
@@ -289,10 +304,12 @@ def send_command(b: Backend, r: Request) -> dict:
 
 
 def list_commands(b: Backend, r: Request) -> dict:
-    _staff(b, r)
-    limit = max(1, min(500, int((r.query.get("limit") or ["100"])[0])))
+    staff = _staff(b, r)
+    limit = _query_limit(r, 100, 500)
     with b.lock:
         rows = b.db.execute("SELECT * FROM server_commands ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+    if "server.exec" not in staff["permissions"]:
+        rows = [x for x in rows if x["type"] != "exec"]  # console commands/output are owner-level information
     return {"commands": [{"commandId": x["id"], "serverId": x["server_id"], "instanceId": x["instance_id"],
                           "type": x["type"], "payload": json.loads(x["payload"]), "createdAt": x["created_at"],
                           "createdBy": x["created_by"], "status": x["status"], "deliveredAt": x["delivered_at"] or 0,
@@ -316,7 +333,10 @@ def spawn(b: Backend, r: Request) -> dict:
     staff = _staff(b, r, "deploy")
     reason = _reason(r.body)
     district_id = str(r.body.get("districtId") or "")
-    started = b.orchestrator.spawn(district_id, _int(r.body, "count", 1), str(r.body.get("region") or "")[:16],
+    region = str(r.body.get("region") or "")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{0,16}", region):
+        raise ApiError(400, "Region tags are up to 16 letters, digits, '_' or '-'")
+    started = b.orchestrator.spawn(district_id, _int(r.body, "count", 1), region,
                                    _int(r.body, "maxPlayers", 0), staff["username"])
     _audit(b, staff, r, "deploy.spawn", "district", district_id, reason,
            {"deployments": [d["deploymentId"] for d in started], "ports": [d["port"] for d in started]})
@@ -348,7 +368,8 @@ def stop_deployment(b: Backend, r: Request) -> dict:
 
 def deployment_log(b: Backend, r: Request) -> dict:
     _staff(b, r, "deploy")
-    return {"log": b.orchestrator.log_tail(r.params["did"])}
+    log = b.orchestrator.log_tail(r.params["did"])
+    return {"log": re.sub(r"(?i)(BytesServerKey=)\S+", r"\1[redacted]", log)}
 
 
 # ---- players -------------------------------------------------------------------------------------
@@ -437,7 +458,7 @@ def list_bans(b: Backend, r: Request) -> dict:
 
 
 def revoke_ban(b: Backend, r: Request) -> dict:
-    staff = _staff(b, r, "player.ban")
+    staff = _staff(b, r, "player.unban")
     reason = _reason(r.body)
     with b.lock:
         row = b.db.execute("SELECT * FROM bans WHERE id = ?", (r.params["bid"],)).fetchone()
@@ -445,6 +466,9 @@ def revoke_ban(b: Backend, r: Request) -> dict:
             raise ApiError(404, "Unknown ban")
         if row["revoked_at"]:
             raise ApiError(409, "Already revoked")
+        limit = staff["limits"].get("maxBanHours")
+        if limit is not None and (row["expires_at"] is None or row["expires_at"] - row["created_at"] > limit * 3600):
+            raise ApiError(403, f"Your role may only lift bans it could have issued (up to {limit} hours)")
         b.db.execute("UPDATE bans SET revoked_at = ?, revoked_by = ?, revoke_reason = ? WHERE id = ?",
                      (now(), staff["username"], reason, row["id"]))
         b.db.commit()
@@ -492,6 +516,9 @@ def grant(b: Backend, r: Request) -> dict:
     staff = _staff(b, r, "economy.grant")
     reason = _reason(r.body)
     body = r.body
+    note = str(body.get("notifyMessage") or "")[:300]
+    if note and "server.command" not in staff["permissions"]:
+        raise ApiError(403, "Sending a custom message to the player needs the server.command permission")
     with b.lock:
         character = _character_owner(b, str(body["characterId"])) if body.get("characterId") else None
         account_id = character["account_id"] if character else str(body.get("accountId") or "")
@@ -516,16 +543,22 @@ def grant(b: Backend, r: Request) -> dict:
                 b.economy.apply(attachments, account_id, character["id"], source=f"staff:{staff['username']}")
                 details.update(itemId=body["itemId"], quantity=attachments[0]["quantity"])
             elif body.get("removeEntryId"):
-                removed = b.economy.remove_item(str(body["removeEntryId"]))
-                details.update(removed=removed["item_id"], entryId=removed["id"])
+                if not character:
+                    raise ApiError(400, "Say which character the item is removed from")
+                removed = b.economy.remove_item(str(body["removeEntryId"]), character["id"])
+                if "maxItemQuantity" in limits and removed["quantity"] > limits["maxItemQuantity"]:
+                    raise ApiError(403, f"Your role may remove at most {limits['maxItemQuantity']} of an item")
+                details.update(removed=removed["item_id"], quantity=removed["quantity"], entryId=removed["id"])
             else:
                 raise ApiError(400, "Give a currency+amount, an itemId, or removeEntryId")
             b.db.commit()
         except economy_rules.EconomyError as e:
             b.db.rollback()
             raise ApiError(e.status, e.message)
-        _refresh_if_online(b, character["id"] if character else None, account_id, staff["username"],
-                           str(body.get("notifyMessage") or ""))
+        except Exception:
+            b.db.rollback()  # never leave a half-applied change for the next commit to pick up
+            raise
+        _refresh_if_online(b, character["id"] if character else None, account_id, staff["username"], note)
     _audit(b, staff, r, "economy.grant", "character" if character else "account",
            character["id"] if character else account_id, reason, details)
     return {"ok": True, "wallet": b.economy.wallet(account_id)}
@@ -546,7 +579,9 @@ def send_gift(b: Backend, r: Request) -> dict:
     except economy_rules.EconomyError as e:
         raise ApiError(e.status, e.message)
     _check_attachment_limits(staff, attachments)
-    sender = str(body.get("sender") or "Project Bytes Staff")[:40]
+    sender = "Project Bytes Staff"  # fixed: staff can't impersonate other senders
+    if to_all and body.get("announce", True) and "server.command" not in staff["permissions"]:
+        raise ApiError(403, "Announcing in districts needs the server.command permission (untick 'announce')")
 
     with b.lock:
         if to_all:
@@ -609,7 +644,7 @@ def revoke_gift(b: Backend, r: Request) -> dict:
 def audit_log(b: Backend, r: Request) -> dict:
     _staff(b, r, "audit.read")
     q = {k: (v[0] if v else "") for k, v in r.query.items()}
-    limit = max(1, min(1000, int(q.get("limit") or 200)))
+    limit = _query_limit(r, 200, 1000)
     clauses, params = [], []
     for key, column in (("action", "action"), ("staff", "staff_name"), ("target", "target_id")):
         if q.get(key):
@@ -649,7 +684,7 @@ def create_staff(b: Backend, r: Request) -> dict:
                                      actor["username"], with_2fa=True)
     _audit(b, actor, r, "staff.created", "staff", created["staffId"], reason,
            {"username": created["username"], "role": role})
-    return {"staff": created, "totpSecret": secret, "totpUri": staff_rules.totp_uri(secret, created["username"])}
+    return {"staff": _public_staff(created), "totpSecret": secret, "totpUri": staff_rules.totp_uri(secret, created["username"])}
 
 
 def update_staff(b: Backend, r: Request) -> dict:

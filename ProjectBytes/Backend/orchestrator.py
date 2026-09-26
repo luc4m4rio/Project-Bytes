@@ -77,7 +77,7 @@ class Orchestrator:
         args = [
             "-server", "-log", "-unattended", "-NoCrashDialog", "-nosteam", "-stdout", "-FullStdOutLogOutput",
             f"-port={port}", f"-District={district_id}", f"-BytesBackend={self.backend_url}",
-            f"-BytesServerKey={self.server_key}", f"-BytesPublicHost={self.public_host}",
+            f"-BytesPublicHost={self.public_host}",
         ]
         if region:
             args.append(f"-BytesRegion={region}")
@@ -126,7 +126,10 @@ class Orchestrator:
                 command = self.build_command(district_id, port, region, max_players)
                 log = open(log_path, "w", encoding="utf-8", errors="replace")
                 try:
-                    kwargs = {"stdout": log, "stderr": subprocess.STDOUT, "cwd": self.base_dir}
+                    # The server key goes through the environment, not argv: argv shows up in `ps` and in the
+                    # engine's "Command Line:" log line, which staff with the deploy permission can read.
+                    kwargs = {"stdout": log, "stderr": subprocess.STDOUT, "cwd": self.base_dir,
+                              "env": dict(os.environ, BYTES_SERVER_KEY=self.server_key)}
                     if IS_WINDOWS:
                         kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
                     proc = subprocess.Popen(command, **kwargs)

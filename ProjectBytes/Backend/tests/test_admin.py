@@ -27,11 +27,11 @@ class AdminTest(unittest.TestCase):
             f.write(textwrap.dedent(f"""\
                 #!{sys.executable}
                 # Stand-in for a UE district server: registers, heartbeats, acks shutdown and exits.
-                import json, sys, time, urllib.request
+                import json, os, sys, time, urllib.request
                 a = {{k.lstrip('-').split('=')[0]: k.split('=', 1)[1] for k in sys.argv[1:] if k.startswith('-') and '=' in k}}
                 def post(path, body):
                     req = urllib.request.Request(a['BytesBackend'] + path, data=json.dumps(body).encode(), method='POST',
-                        headers={{'Content-Type': 'application/json', 'X-Bytes-Server-Key': a['BytesServerKey']}})
+                        headers={{'Content-Type': 'application/json', 'X-Bytes-Server-Key': os.environ['BYTES_SERVER_KEY']}})
                     return json.loads(urllib.request.urlopen(req).read())
                 reg = post('/v1/servers/register', {{'districtId': a['District'], 'host': '127.0.0.1', 'port': int(a['port'])}})
                 while True:
@@ -92,8 +92,8 @@ class AdminTest(unittest.TestCase):
     # tests
     def test_totp(self):
         secret = st.new_totp_secret()
-        self.assertTrue(st.verify_totp(secret, st.totp_code(secret)))
-        self.assertFalse(st.verify_totp(secret, "000000") and st.totp_code(secret) != "000000")
+        self.assertGreaterEqual(st.verify_totp(secret, st.totp_code(secret)), 0)
+        self.assertEqual(st.verify_totp(secret, "\u0660" * 6), -1)  # Arabic-Indic digits: rejected, not a crash
         # RFC 6238 test vector (SHA-1, T=59 -> 94287082, 8 digits)
         rfc = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
         self.assertEqual(st.totp_code(rfc, at=59, digits=8), "94287082")
@@ -275,6 +275,73 @@ class AdminTest(unittest.TestCase):
                 break
             time.sleep(0.2)
         self.assertEqual(d["status"], "stopped")
+
+
+    # ---- security regressions ----------------------------------------------------------------------
+
+    def test_login_hardening(self):
+        # Unicode digits used to raise inside compare_digest -> 500 only when the password was right.
+        status, body = self.cockpit.call("POST", "/admin/v1/login", {"username": "root", "password": PASSWORD,
+                                                                      "code": "\u0660" * 6})
+        self.assertEqual((status, body["error"]), (401, "Invalid credentials"))
+        # Padding/case can't create a fresh lockout bucket.
+        for name in ("root", " root", "ROOT", "root\t", "\troot"):
+            self.cockpit.call("POST", "/admin/v1/login", {"username": name, "password": "wrong", "code": "1"})
+        self.assertEqual(self.cockpit.call("POST", "/admin/v1/login", {
+            "username": "  Root ", "password": PASSWORD, "code": st.totp_code(self.owner_secret)})[0], 429)
+        self.backend.staff._failures.clear()
+        # A TOTP code works once.
+        self.sign_in(self.cockpit)
+        self.assertEqual(self.cockpit.call("POST", "/admin/v1/login", {
+            "username": "root", "password": PASSWORD, "code": st.totp_code(self.owner_secret)})[0], 401)
+
+    def test_limits_scoping_and_unban(self):
+        self.sign_in(self.cockpit)
+        secrets_by_role = {}
+        for role in ("support", "gamemaster", "moderator"):
+            _, body = self.cockpit.call("POST", "/admin/v1/staff", {"username": role + "1", "password": PASSWORD,
+                                                                    "role": role, "reason": "test"})
+            client = Client(self.cockpit.base)
+            self.sign_in(client, role + "1", body["totpSecret"])
+            secrets_by_role[role] = client
+        alice, alice_char = self.make_player("alice", "Vex")
+        _, bob_char = self.make_player("bob", "Mara")
+        # Repeating attachments can't multiply a role's cap.
+        status, _ = secrets_by_role["support"].call("POST", "/admin/v1/gifts", {
+            "target": "account", "accountId": alice, "subject": "x", "reason": "test",
+            "attachments": [{"type": "currency", "currency": "bp", "amount": 10000}] * 10})
+        self.assertEqual(status, 403)
+        # Removing an item must name the character that owns it.
+        self.cockpit.call("POST", "/admin/v1/grants", {"characterId": alice_char, "itemId": "wpn_obir", "reason": "test grant"})
+        entry = self.player.call("GET", f"/v1/characters/{bob_char}/inventory")[1]["items"]
+        self.assertEqual(entry, [])
+        alice_inv = self.backend.economy.inventory(alice_char)
+        status, _ = secrets_by_role["gamemaster"].call("POST", "/admin/v1/grants", {
+            "characterId": bob_char, "removeEntryId": alice_inv[0]["entryId"], "reason": "sneaky"})
+        self.assertEqual(status, 404)
+        self.assertEqual(len(self.backend.economy.inventory(alice_char)), 1)
+        # Moderators can't lift an owner's permanent ban.
+        ban = self.cockpit.call("POST", f"/admin/v1/players/{alice}/ban", {"reason": "cheat", "durationHours": 0})[1]
+        self.assertEqual(secrets_by_role["moderator"].call("POST", f"/admin/v1/bans/{ban['banId']}/revoke",
+                                                           {"reason": "friend"})[0], 403)
+
+    def test_idle_timeout_ignores_background_polls(self):
+        self.sign_in(self.cockpit)
+        self.backend.staff.idle_timeout = 1
+        time.sleep(1.2)
+        status, _ = self.cockpit.call("GET", "/admin/v1/overview", headers={"X-Cockpit-Background": "1"})
+        self.assertEqual(status, 401)
+
+    def test_audit_detects_deleted_tail_and_host_check(self):
+        self.sign_in(self.cockpit)
+        account_id, _ = self.make_player()
+        self.cockpit.call("POST", f"/admin/v1/players/{account_id}/flags", {"flag": "tester", "reason": "QA group"})
+        self.assertTrue(self.backend.staff.verify_audit_chain()["ok"])
+        self.backend.db.execute("DELETE FROM audit_log WHERE seq = (SELECT MAX(seq) FROM audit_log)")
+        self.backend.db.commit()
+        self.assertFalse(self.backend.staff.verify_audit_chain()["ok"])
+        # DNS rebinding: a foreign Host header is refused.
+        self.assertEqual(self.cockpit.call("GET", "/admin/v1/me", headers={"Host": "evil.example:8090"})[0], 403)
 
 
 if __name__ == "__main__":

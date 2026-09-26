@@ -66,7 +66,7 @@ DEFAULT_CONFIG = {
     "adminAllowedIps": [],
     "staffRequire2FA": True,
     "deploy": {},
-    "devMode": True,
+    "devMode": False,
     "serverKey": "dev-server-key-change-me",
     "sessionTtlSeconds": 7 * 24 * 3600,
     "ticketTtlSeconds": 60,
@@ -496,10 +496,10 @@ class Backend:
             row = self.db.execute("SELECT * FROM accounts WHERE username = ?", (username,)).fetchone()
         if not row or not hmac.compare_digest(self._hash_password(password, row["pw_salt"]), row["pw_hash"]):
             raise ApiError(401, "Wrong username or password")
-        with self.lock:
-            self._refuse_if_banned(row["id"])
         token = secrets.token_urlsafe(32)
         with self.lock:
+            # Ban check and session creation in one critical section: a ban can't slip in between.
+            self._refuse_if_banned(row["id"])
             self.db.execute("DELETE FROM sessions WHERE expires_at < ?", (now(),))
             self.db.execute("INSERT INTO sessions (token_hash, account_id, expires_at) VALUES (?,?,?)",
                             (self._token_hash(token), row["id"], now() + self.cfg["sessionTtlSeconds"]))
@@ -866,6 +866,7 @@ class Backend:
 
     def claim_mail(self, account, mail_id: str, body: dict) -> dict:
         with self.lock:
+            self._refuse_if_banned(account["id"])
             character = self._owned_character(account, str(body.get("characterId") or ""))
             try:
                 result = self.economy.claim(account["id"], mail_id, character["id"])
@@ -893,7 +894,7 @@ class Backend:
                 new_rank = max(1, min(self.cfg["maxRank"], int(rank)))
                 new_standing = (new_rank - 1) * self.cfg["standingPerRank"]
             new_threat = canon(threat, THREATS, "threat") or row["threat"]
-            new_money = row["money"] if money is None else max(0, int(money))
+            new_money = row["money"] if money is None else max(0, min(2_000_000_000, int(money)))
             self.db.execute("UPDATE characters SET rank = ?, standing = ?, threat = ?, money = ? WHERE id = ?",
                             (new_rank, new_standing, new_threat, new_money, row["id"]))
             self.db.commit()
@@ -977,6 +978,7 @@ class Handler(BaseHTTPRequestHandler):
     quiet = False
     static_dir: str | None = None       # admin listener: serves the cockpit UI
     allowed_ips: list[str] = []         # admin listener: optional IP allowlist
+    allowed_hosts: list[str] = []       # admin listener: accepted Host headers
     security_headers = False
     server_version = "BytesBackend/1.0"
     protocol_version = "HTTP/1.1"
@@ -1031,6 +1033,10 @@ class Handler(BaseHTTPRequestHandler):
         if self.allowed_ips and self.client_address[0] not in self.allowed_ips:
             self._send(403, {"error": "Forbidden", "reasons": []})
             return
+        if self.allowed_hosts and (self.headers.get("Host") or "").lower() not in self.allowed_hosts:
+            # Blocks DNS-rebinding pages in a staff member's browser from talking to the localhost cockpit.
+            self._send(403, {"error": "Unexpected Host header", "reasons": []})
+            return
         length = int(self.headers.get("Content-Length") or 0)
         if length > 1_000_000:
             self._send(413, {"error": "Request too large", "reasons": []})
@@ -1064,7 +1070,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:  # keep the server alive, but make the failure loud
             import traceback
             traceback.print_exc()
-            self._send(500, {"error": f"Internal error: {e}", "reasons": []})
+            self._send(500, {"error": "Internal error (see backend log)", "reasons": []})
 
     def do_GET(self):
         self._dispatch("GET")
@@ -1086,12 +1092,17 @@ def make_server(backend: Backend, host: str, port: int, quiet: bool = False) -> 
 def make_admin_server(backend: Backend, host: str, port: int, quiet: bool = False) -> ThreadingHTTPServer:
     """Root cockpit listener: admin API + UI only (no game routes), security headers, optional IP allowlist."""
     import admin
-    handler = type("AdminHandler", (Handler,), {
+    bound_port = port
+    server = ThreadingHTTPServer((host, port), Handler)  # bind first so port 0 (tests) resolves
+    bound_port = server.server_address[1]
+    hosts = {f"{h}:{bound_port}" for h in ("127.0.0.1", "localhost", "[::1]", host)}
+    hosts |= {str(x).lower() for x in (backend.cfg.get("adminAllowedHosts") or [])}
+    server.RequestHandlerClass = type("AdminHandler", (Handler,), {
+        "allowed_hosts": sorted(hosts),
         "backend": backend, "quiet": quiet, "routes": admin.COMPILED_ADMIN_ROUTES,
         "static_dir": os.path.join(HERE, "cockpit"), "allowed_ips": list(backend.cfg.get("adminAllowedIps") or []),
         "security_headers": True,
     })
-    server = ThreadingHTTPServer((host, port), handler)
     server.daemon_threads = True
     return server
 
@@ -1113,6 +1124,8 @@ def _admin(backend: Backend, args) -> int:
     elif args.admin_cmd == "set-stats":
         c = backend.set_character_stats(args.character, rank=args.rank, threat=args.threat, money=args.money,
                                         standing=args.standing)["character"]
+        _cli_audit(backend, "cli.set_stats", "character", c["characterId"],
+                   {"rank": args.rank, "threat": args.threat, "money": args.money, "standing": args.standing})
         print(f"{c['name']}: rank {c['rank']} ({c['standing']} standing), threat {c['threat']}, ${c['money']}")
     elif args.admin_cmd in ("flag", "unflag"):
         row = db.execute("SELECT * FROM accounts WHERE username = ?", (args.username,)).fetchone()
@@ -1124,12 +1137,39 @@ def _admin(backend: Backend, args) -> int:
             flags.append(args.flag)
         db.execute("UPDATE accounts SET flags = ? WHERE id = ?", (json.dumps(flags), row["id"]))
         db.commit()
+        _cli_audit(backend, f"cli.{args.admin_cmd}", "account", row["id"], {"flag": args.flag})
         print(f"{row['username']} flags: {flags}")
     elif args.admin_cmd == "slots":
         db.execute("UPDATE accounts SET max_characters = ? WHERE username = ?", (args.count, args.username))
         db.commit()
+        _cli_audit(backend, "cli.slots", "account", args.username, {"count": args.count})
         print(f"{args.username} may now have {args.count} characters")
     return 0
+
+
+DEFAULT_SERVER_KEY = "dev-server-key-change-me"
+LOOPBACK = ("127.0.0.1", "localhost", "::1")
+
+
+def security_warnings(cfg: dict) -> list[str]:
+    warnings = []
+    if cfg.get("devMode"):
+        warnings.append("devMode is on: players can set their own rank/threat/money through /v1/dev (bypasses staff control)")
+    if cfg.get("serverKey") in ("", DEFAULT_SERVER_KEY):
+        warnings.append("serverKey is the public default: anyone who knows it can register fake servers and change characters")
+    if not cfg.get("staffRequire2FA", True):
+        warnings.append("staffRequire2FA is off")
+    return warnings
+
+
+def _cli_audit(backend: Backend, action: str, target_type: str, target_id: str, details: dict | None = None) -> None:
+    import getpass
+    try:
+        who = getpass.getuser()
+    except Exception:
+        who = "unknown"
+    backend.staff.audit({"staffId": "", "username": f"cli:{who}"[:32]}, action, target_type, target_id,
+                        "command line on the server machine", details or {})
 
 
 def _staff_cli(backend: Backend, args) -> int:
@@ -1142,8 +1182,7 @@ def _staff_cli(backend: Backend, args) -> int:
         except staff_rules.StaffError as e:
             print(e.message)
             return 1
-        service.audit({"staffId": "", "username": "cli"}, "staff.created", "staff", created["staffId"],
-                      "created from the command line", {"username": created["username"], "role": args.role})
+        _cli_audit(backend, "staff.created", "staff", created["staffId"], {"username": created["username"], "role": args.role})
         print(f"Created {args.role} '{created['username']}'.")
         if secret:
             print("Add this to an authenticator app (Google Authenticator, 1Password, Authy...):")
@@ -1158,19 +1197,26 @@ def _staff_cli(backend: Backend, args) -> int:
                   f"{'DISABLED' if row['disabled'] else ''}")
     elif args.staff_cmd == "reset-2fa":
         secret = staff_rules.new_totp_secret()
-        cur = backend.db.execute("UPDATE staff SET totp_secret = ? WHERE username = ?", (secret, args.username))
-        backend.db.commit()
-        if not cur.rowcount:
+        row = backend.db.execute("SELECT id FROM staff WHERE username = ?", (args.username,)).fetchone()
+        if not row:
             print(f"Unknown staff '{args.username}'")
             return 1
-        service.audit({"staffId": "", "username": "cli"}, "staff.2fa_reset", "staff", args.username,
-                      "reset from the command line")
+        backend.db.execute("UPDATE staff SET totp_secret = ?, totp_last_counter = -1 WHERE id = ?", (secret, row["id"]))
+        backend.db.commit()
+        service.revoke_sessions(row["id"])
+        _cli_audit(backend, "staff.2fa_reset", "staff", row["id"], {"username": args.username})
         print(f"New secret for {args.username}: {secret}\n  uri: {staff_rules.totp_uri(secret, args.username)}")
     elif args.staff_cmd in ("disable", "enable"):
-        cur = backend.db.execute("UPDATE staff SET disabled = ? WHERE username = ?",
-                                 (1 if args.staff_cmd == "disable" else 0, args.username))
+        row = backend.db.execute("SELECT id FROM staff WHERE username = ?", (args.username,)).fetchone()
+        if not row:
+            print(f"Unknown staff '{args.username}'")
+            return 1
+        backend.db.execute("UPDATE staff SET disabled = ? WHERE id = ?", (1 if args.staff_cmd == "disable" else 0, row["id"]))
         backend.db.commit()
-        print(f"{args.username}: {args.staff_cmd}d" if cur.rowcount else f"Unknown staff '{args.username}'")
+        if args.staff_cmd == "disable":
+            service.revoke_sessions(row["id"])
+        _cli_audit(backend, f"staff.{args.staff_cmd}d", "staff", row["id"], {"username": args.username})
+        print(f"{args.username}: {args.staff_cmd}d")
     elif args.staff_cmd == "verify-audit":
         print(json.dumps(service.verify_audit_chain(), indent=2))
     return 0
@@ -1183,6 +1229,8 @@ def main(argv=None) -> int:
     parser.add_argument("--port", type=int)
     parser.add_argument("--reset", action="store_true", help="delete the database before starting")
     parser.add_argument("--quiet", action="store_true", help="don't log every HTTP request")
+    parser.add_argument("--allow-insecure", action="store_true",
+                        help="start on a non-loopback address even with devMode / the default server key")
     sub = parser.add_subparsers(dest="cmd")
 
     admin = sub.add_parser("admin", help="offline admin commands against the database")
@@ -1239,6 +1287,15 @@ def main(argv=None) -> int:
             return 1
     if args.cmd == "staff":
         return _staff_cli(backend, args)
+
+    warnings = security_warnings(cfg)
+    for warning in warnings:
+        print(f"[backend] SECURITY WARNING: {warning}", flush=True)
+    exposed = cfg["host"] not in LOOPBACK or (cfg.get("adminPort") and cfg.get("adminHost") not in LOOPBACK)
+    if warnings and exposed and not args.allow_insecure:
+        print("[backend] Refusing to listen on a non-loopback address with the settings above. Fix them "
+              "(devMode false, a secret serverKey, staffRequire2FA true) or pass --allow-insecure.", flush=True)
+        return 2
 
     httpd = make_server(backend, cfg["host"], cfg["port"], quiet=args.quiet)
     print(f"[backend] Project Bytes backend listening on http://{cfg['host']}:{cfg['port']}  "

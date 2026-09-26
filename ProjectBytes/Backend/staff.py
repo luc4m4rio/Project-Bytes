@@ -11,6 +11,8 @@ import base64
 import hashlib
 import hmac
 import json
+import os
+import re
 import secrets
 import struct
 import threading
@@ -28,7 +30,8 @@ CREATE TABLE IF NOT EXISTS staff (
     disabled INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL,
     created_by TEXT NOT NULL DEFAULT '',
-    last_login_at INTEGER
+    last_login_at INTEGER,
+    totp_last_counter INTEGER NOT NULL DEFAULT -1
 );
 CREATE TABLE IF NOT EXISTS staff_sessions (
     token_hash TEXT PRIMARY KEY,
@@ -61,6 +64,7 @@ ALL_PERMISSIONS = [
     "server.exec",        # raw console commands on district servers
     "player.kick",
     "player.ban",
+    "player.unban",       # lift bans (separate so moderators can't undo owners' bans)
     "player.sessions",    # force-logout a player
     "player.flags",       # account flags (tester, premium...)
     "economy.grant",      # give currency/items to a player directly
@@ -72,9 +76,9 @@ ALL_PERMISSIONS = [
 
 DEFAULT_ROLES = {
     "owner": ["*"],
-    "admin": ["view", "deploy", "server.command", "player.kick", "player.ban", "player.sessions", "player.flags",
+    "admin": ["view", "deploy", "server.command", "player.kick", "player.ban", "player.unban", "player.sessions", "player.flags",
               "economy.grant", "economy.gift", "economy.gift_all", "audit.read"],
-    "gamemaster": ["view", "server.command", "player.kick", "player.ban", "player.sessions", "economy.grant",
+    "gamemaster": ["view", "server.command", "player.kick", "player.ban", "player.unban", "player.sessions", "economy.grant",
                    "economy.gift", "audit.read"],
     "moderator": ["view", "player.kick", "player.ban", "audit.read"],
     "support": ["view", "economy.gift"],
@@ -114,12 +118,19 @@ def totp_code(secret: str, at: float | None = None, step: int = 30, digits: int 
     return str(value % (10 ** digits)).zfill(digits)
 
 
-def verify_totp(secret: str, code: str, at: float | None = None, window: int = 1) -> bool:
+def verify_totp(secret: str, code: str, at: float | None = None, window: int = 1, min_counter: int = -1) -> int:
+    """Returns the matched time-step counter, or -1. Counters <= min_counter are rejected (no replay)."""
     code = (code or "").strip().replace(" ", "")
-    if not secret or not code.isdigit():
-        return False
+    # ASCII digits only: str.isdigit() also accepts other scripts' digits, which made compare_digest raise.
+    if not secret or not re.fullmatch(r"[0-9]{6}", code):
+        return -1
     moment = time.time() if at is None else at
-    return any(hmac.compare_digest(totp_code(secret, moment + drift * 30), code) for drift in range(-window, window + 1))
+    base = int(moment // 30)
+    for drift in range(-window, window + 1):
+        counter = base + drift
+        if counter > min_counter and hmac.compare_digest(totp_code(secret, counter * 30).encode(), code.encode()):
+            return counter
+    return -1
 
 
 def totp_uri(secret: str, username: str, issuer: str = "Project Bytes Cockpit") -> str:
@@ -145,6 +156,32 @@ class StaffService:
         self.lockout_seconds = int(cfg.get("staffLockoutSeconds", 600))
         self._failures: dict[str, list[float]] = {}
         db.executescript(STAFF_SCHEMA)
+        columns = {row[1] for row in db.execute("PRAGMA table_info(staff)")}
+        if "totp_last_counter" not in columns:
+            db.execute("ALTER TABLE staff ADD COLUMN totp_last_counter INTEGER NOT NULL DEFAULT -1")
+            db.commit()
+        # Audit entries are HMAC'd with a key that lives OUTSIDE the database, so someone who can write the DB
+        # can't quietly rewrite history and recompute the chain.
+        self.audit_key = self._load_audit_key(cfg)
+        # Burn the same PBKDF2 time for unknown usernames (no timing oracle for which staff accounts exist).
+        self._dummy_salt = secrets.token_hex(16)
+
+    @staticmethod
+    def _load_audit_key(cfg: dict) -> bytes:
+        if os.environ.get("BYTES_AUDIT_KEY"):
+            return os.environ["BYTES_AUDIT_KEY"].encode("utf-8")
+        if cfg.get("auditKey"):
+            return str(cfg["auditKey"]).encode("utf-8")
+        database = cfg.get("database", ":memory:")
+        if database == ":memory:":
+            return secrets.token_bytes(32)
+        path = os.path.join(os.path.dirname(database), "audit.key")
+        if not os.path.exists(path):
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "w") as f:
+                f.write(secrets.token_hex(32))
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip().encode("utf-8")
 
     # -- passwords / roles --------------------------------------------------------------------------
 
@@ -215,28 +252,59 @@ class StaffService:
 
     # -- login / sessions ---------------------------------------------------------------------------
 
-    def _locked(self, key: str) -> bool:
+    @staticmethod
+    def normalize_username(username) -> str:
+        return str(username or "").strip().lower()[:64]
+
+    def _prune_failures(self) -> None:
         cutoff = time.time() - self.lockout_seconds
-        recent = [t for t in self._failures.get(key, []) if t > cutoff]
-        self._failures[key] = recent
-        return len(recent) >= self.max_failures
+        for key in list(self._failures):
+            recent = [t for t in self._failures[key] if t > cutoff]
+            if recent:
+                self._failures[key] = recent
+            else:
+                del self._failures[key]
+
+    def _locked(self, *keys: str) -> bool:
+        self._prune_failures()
+        return any(len(self._failures.get(k, [])) >= self.max_failures for k in keys)
+
+    def _record_failure(self, *keys: str) -> None:
+        for key in keys:
+            self._failures.setdefault(key, []).append(time.time())
 
     def login(self, username: str, password: str, code: str, ip: str) -> dict:
-        key = f"{(username or '').lower()}|{ip}"
+        name = self.normalize_username(username)
+        # Two counters: per account (any IP) and per IP (any account). Padding/case can't make a fresh key.
+        keys = (f"user|{name}", f"ip|{ip}")
         with self.lock:
-            if self._locked(key):
+            if self._locked(*keys):
                 raise StaffError(429, f"Too many failed attempts; try again in {self.lockout_seconds // 60} minutes")
-            row = self.db.execute("SELECT * FROM staff WHERE username = ?", ((username or "").strip(),)).fetchone()
-            ok = bool(row) and hmac.compare_digest(self._hash(password or "", row["pw_salt"]), row["pw_hash"])
-            if ok and row["disabled"]:
-                ok = False
-            if ok and (row["totp_secret"] or self.require_2fa):
-                ok = bool(row["totp_secret"]) and verify_totp(row["totp_secret"], code)
+            ok = False
+            row = None
+            try:
+                row = self.db.execute("SELECT * FROM staff WHERE username = ?", (name,)).fetchone() if name else None
+                if row is None:
+                    self._hash(password or "", self._dummy_salt)  # same cost as a real check
+                else:
+                    ok = hmac.compare_digest(self._hash(password or "", row["pw_salt"]).encode(), row["pw_hash"].encode())
+                if ok and row["disabled"]:
+                    ok = False
+                counter = -1
+                if ok and (row["totp_secret"] or self.require_2fa):
+                    counter = verify_totp(row["totp_secret"], code, min_counter=row["totp_last_counter"]) \
+                        if row["totp_secret"] else -1
+                    ok = counter >= 0
+            except Exception:
+                ok = False  # any malformed input is just a failed attempt (never a distinguishable error)
             if not ok:
-                self._failures.setdefault(key, []).append(time.time())
+                self._record_failure(*keys)
                 # One generic message: don't reveal which factor failed or whether the user exists.
                 raise StaffError(401, "Invalid credentials")
-            self._failures.pop(key, None)
+            for key in keys:
+                self._failures.pop(key, None)
+            if counter >= 0:
+                self.db.execute("UPDATE staff SET totp_last_counter = ? WHERE id = ?", (counter, row["id"]))
             token = secrets.token_urlsafe(32)
             moment = int(time.time())
             self.db.execute("DELETE FROM staff_sessions WHERE expires_at < ?", (moment,))
@@ -248,7 +316,9 @@ class StaffService:
         return {"token": token, "staff": self.staff_json(row), "expiresAt": moment + self.session_ttl}
 
     def authenticate(self, headers) -> dict:
+        """Background polls (X-Cockpit-Background: 1) don't count as activity for the idle timeout."""
         auth = headers.get("Authorization") or ""
+        background = (headers.get("X-Cockpit-Background") or "") == "1"
         if not auth.startswith("Bearer "):
             raise StaffError(401, "Not signed in")
         token_hash = self._token_hash(auth[len("Bearer "):].strip())
@@ -262,9 +332,12 @@ class StaffService:
                     self.db.execute("DELETE FROM staff_sessions WHERE token_hash = ?", (token_hash,))
                     self.db.commit()
                 raise StaffError(401, "Session expired; sign in again")
-            self.db.execute("UPDATE staff_sessions SET last_seen_at = ? WHERE token_hash = ?", (moment, token_hash))
-            self.db.commit()
-        return self.staff_json(row)
+            if not background:
+                self.db.execute("UPDATE staff_sessions SET last_seen_at = ? WHERE token_hash = ?", (moment, token_hash))
+                self.db.commit()
+        staff = self.staff_json(row)
+        staff["_tokenHash"] = token_hash
+        return staff
 
     def logout(self, headers) -> None:
         auth = headers.get("Authorization") or ""
@@ -273,17 +346,31 @@ class StaffService:
                 self.db.execute("DELETE FROM staff_sessions WHERE token_hash = ?", (self._token_hash(auth[7:].strip()),))
                 self.db.commit()
 
-    def revoke_sessions(self, staff_id: str) -> None:
+    def revoke_sessions(self, staff_id: str, keep_token_hash: str = "") -> None:
         with self.lock:
-            self.db.execute("DELETE FROM staff_sessions WHERE staff_id = ?", (staff_id,))
+            self.db.execute("DELETE FROM staff_sessions WHERE staff_id = ? AND token_hash != ?", (staff_id, keep_token_hash))
             self.db.commit()
+
+    def change_password(self, staff: dict, current: str, new: str, ip: str) -> None:
+        keys = (f"user|{self.normalize_username(staff['username'])}", f"ip|{ip}")
+        with self.lock:
+            if self._locked(*keys):
+                raise StaffError(429, "Too many failed attempts; try again later")
+            row = self.db.execute("SELECT * FROM staff WHERE id = ?", (staff["staffId"],)).fetchone()
+            if not hmac.compare_digest(self._hash(current or "", row["pw_salt"]).encode(), row["pw_hash"].encode()):
+                self._record_failure(*keys)
+                raise StaffError(403, "Current password is wrong")
+            self.validate_password(new)
+            salt = secrets.token_hex(16)
+            self.db.execute("UPDATE staff SET pw_salt = ?, pw_hash = ? WHERE id = ?", (salt, self._hash(new, salt), row["id"]))
+            self.db.commit()
+        self.revoke_sessions(row["id"], keep_token_hash=staff.get("_tokenHash", ""))
 
     # -- audit --------------------------------------------------------------------------------------
 
-    @staticmethod
-    def _entry_hash(prev_hash: str, entry: dict) -> str:
+    def _entry_hash(self, prev_hash: str, entry: dict) -> str:
         canonical = json.dumps(entry, sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256((prev_hash + canonical).encode("utf-8")).hexdigest()
+        return hmac.new(self.audit_key, (prev_hash + canonical).encode("utf-8"), hashlib.sha256).hexdigest()
 
     def audit(self, staff: dict, action: str, target_type: str = "", target_id: str = "", reason: str = "",
               details: dict | None = None, ip: str = "") -> dict:
@@ -323,13 +410,23 @@ class StaffService:
         with self.lock:
             rows = self.db.execute("SELECT * FROM audit_log ORDER BY seq").fetchall()
         prev = GENESIS_HASH
+        expected_seq = rows[0]["seq"] if rows else 1
+        if rows and expected_seq != 1:
+            return {"ok": False, "entries": len(rows), "brokenAt": 1, "problem": "entries missing from the start"}
+        top = self.db.execute("SELECT seq FROM sqlite_sequence WHERE name = 'audit_log'").fetchone()
+        last_seq = rows[-1]["seq"] if rows else 0
+        if top and top["seq"] != last_seq:
+            return {"ok": False, "entries": len(rows), "brokenAt": last_seq + 1, "problem": "latest entries deleted"}
         for row in rows:
+            if row["seq"] != expected_seq:
+                return {"ok": False, "entries": len(rows), "brokenAt": expected_seq, "problem": "entry deleted"}
+            expected_seq += 1
             entry = {
                 "at": row["at"], "staffId": row["staff_id"], "staffName": row["staff_name"], "action": row["action"],
                 "targetType": row["target_type"], "targetId": row["target_id"], "reason": row["reason"],
                 "details": json.loads(row["details"]), "ip": row["ip"],
             }
-            if row["prev_hash"] != prev or self._entry_hash(prev, entry) != row["hash"]:
-                return {"ok": False, "entries": len(rows), "brokenAt": row["seq"]}
+            if row["prev_hash"] != prev or not hmac.compare_digest(self._entry_hash(prev, entry), row["hash"]):
+                return {"ok": False, "entries": len(rows), "brokenAt": row["seq"], "problem": "entry modified"}
             prev = row["hash"]
         return {"ok": True, "entries": len(rows), "head": prev}

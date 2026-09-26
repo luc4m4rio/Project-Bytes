@@ -133,8 +133,10 @@ class Processes:
         self.procs: list[tuple[str, subprocess.Popen]] = []
         os.makedirs(LOG_DIR, exist_ok=True)
 
-    def start(self, name: str, cmd: list[str], log: bool = True) -> subprocess.Popen:
+    def start(self, name: str, cmd: list[str], log: bool = True, env: dict | None = None) -> subprocess.Popen:
         kwargs = {"cwd": PROJECT_DIR}
+        if env:
+            kwargs["env"] = dict(os.environ, **env)
         log_path = None
         if self.show_consoles and IS_WINDOWS:
             kwargs["creationflags"] = subprocess.CREATE_NEW_CONSOLE
@@ -211,7 +213,6 @@ def server_cmd(args, cfg: dict, district_id: str, port: int) -> list[str]:
         f"-port={port}",
         f"-District={district_id}",
         f"-BytesBackend={backend_url(cfg)}",
-        f"-BytesServerKey={cfg.get('serverKey', '')}",
         f"-BytesPublicHost={args.public_host}",
     ]
     if args.region:
@@ -221,6 +222,11 @@ def server_cmd(args, cfg: dict, district_id: str, port: int) -> list[str]:
     if args.server_exe:
         return [args.server_exe, map_url] + engine_args
     return [editor_binary(find_engine_dir(args.engine), console=True), UPROJECT, map_url] + engine_args
+
+
+def server_env(cfg: dict) -> dict:
+    # Secret via the environment rather than argv (argv is visible in `ps` and echoed into engine logs).
+    return {"BYTES_SERVER_KEY": str(cfg.get("serverKey", ""))}
 
 
 def client_cmd(args, cfg: dict, index: int, user: str, character: str, faction: str, district: str | None) -> list[str]:
@@ -279,7 +285,7 @@ def cmd_up(args) -> int:
     for district_id, count in districts:
         for _ in range(count):
             port = next_free_port(args.base_port, taken)
-            procs.start(f"server-{district_id}-{port}", server_cmd(args, cfg, district_id, port))
+            procs.start(f"server-{district_id}-{port}", server_cmd(args, cfg, district_id, port), env=server_env(cfg))
 
     join = args.join or (districts[0][0] if districts else None)
     for i in range(args.clients):
@@ -307,7 +313,7 @@ def cmd_server(args) -> int:
     if not backend_alive(backend_url(cfg)):
         print(f"Warning: backend not reachable at {backend_url(cfg)}; the server will keep retrying registration.")
     port = next_free_port(args.port, set())
-    procs.start(f"server-{args.district_id}-{port}", server_cmd(args, cfg, args.district_id, port))
+    procs.start(f"server-{args.district_id}-{port}", server_cmd(args, cfg, args.district_id, port), env=server_env(cfg))
     procs.wait()
     return 0
 

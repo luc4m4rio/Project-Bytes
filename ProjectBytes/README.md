@@ -347,37 +347,58 @@ open http://127.0.0.1:8090/                  # sign in: username, password, 6-di
 ### How it's locked down
 
 - **Separate identities.** Staff accounts are not player accounts. The first owner can only be created
-  from the command line on the server machine (`staff create`).
+  from the command line on the server machine (`staff create`). Command-line staff and admin actions are
+  audited too.
 - **Sign-in.**
-  - Password (12+ characters) plus a **mandatory TOTP code** (`staffRequire2FA`).
-  - Failed sign-ins give one generic error.
-  - 5 failures lock that username and IP out for 10 minutes.
-  - Sessions last 8 hours and end after 30 minutes idle.
+  - Password (12+ characters) plus a **mandatory TOTP code** (`staffRequire2FA`). Each code works once.
+  - Every failure gives the same generic answer at the same speed, so there's no clue whether the user
+    exists or which factor was wrong.
+  - Two lockout counters (per account and per IP) lock sign-in for 10 minutes after 5 failures;
+    padding or changing the case of the name doesn't escape them.
+  - Sessions last at most 8 hours and end after 30 minutes idle. Auto-refreshing pages don't count as
+    activity, and the page itself signs out after 15 idle minutes.
+  - Changing your password ends your other sessions.
 - **Roles and permissions**, checked on the server for every request (`staffRoles` / `staffRoleLimits`
   in config to customise):
 
   | Role | Can | Limits |
   |---|---|---|
   | owner | everything, including staff management, raw server console, and minting other owners | - |
-  | admin | deploy, all commands except console, bans, grants, gifts to everyone | - |
-  | gamemaster | commands, kicks, bans, grants, single-player gifts | bans ≤30 days, ≤100k currency, ≤10 items |
-  | moderator | kick, temporary bans | bans ≤72 h |
-  | support | view, single-player gifts | ≤10k currency, 1 item |
+  | admin | deploy, all commands except console, bans and unbans, grants, gifts to everyone | - |
+  | gamemaster | commands, kicks, bans and unbans, grants, single-player gifts | bans ≤30 days, ≤100k currency, ≤10 items |
+  | moderator | kick, temporary bans (can't lift bans) | bans ≤72 h |
+  | support | view, single-player gifts (can't add a custom message or announcement) | ≤10k currency, 1 item |
 
+  Limits apply to the **total** of an action: repeating an attachment ten times doesn't multiply the
+  cap. Removing an item has to name the character that owns it.
 - **No escalation.**
-  - Only owners can grant the owner role or change an owner.
+  - Only owners can grant the owner role, change an owner, or reset an owner's 2FA.
   - You can't disable yourself.
   - The last active owner can't be removed.
-- **Every action needs a written reason** and is appended to a **hash-chained audit log**. Each
-  entry commits to the previous one, so editing or deleting a row breaks the chain. There is no API to
-  change the log.
+  - Only roles with `server.exec` can see console commands and their output.
+- **Every action needs a written reason** and goes into a **tamper-evident audit log**. Each entry is
+  an HMAC over the previous one, keyed by a secret stored *outside* the database: `Saved/audit.key`,
+  `auditKey` in config, or the `BYTES_AUDIT_KEY` environment variable. *Verify chain* detects edited,
+  deleted and truncated entries. There is no API to change the log.
+- **Secrets stay out of view.** District servers get the server key through the `BYTES_SERVER_KEY`
+  environment variable, not the command line (which shows in process lists and engine logs), and the
+  cockpit masks it in logs anyway.
+- **Insecure dev settings can't go live by accident.** `devMode` (players can edit their own stats), the
+  default `serverKey`, or 2FA turned off each show a warning on the Overview page. With any of them, the
+  backend **refuses to listen on a non-loopback address** unless you pass `--allow-insecure`. For
+  production: set `"devMode": false`, a long random `serverKey`, and keep `staffRequire2FA` on.
 - **Web hardening.**
   - Strict Content-Security-Policy with no inline scripts, and the page can't be framed.
-  - All player-supplied text is rendered as text, never HTML (tested with script-injection names and
-    reasons).
-  - The token lives in session storage and is sent as a header, so CSRF doesn't apply.
-- **Network.** `adminHost` / `adminAllowedIps` restrict who can reach it. For remote staff, put it
-  behind a VPN or an SSH tunnel (`ssh -L 8090:127.0.0.1:8090 host`) rather than exposing the port.
+  - Requests with an unexpected Host header are refused, which blocks DNS-rebinding attacks.
+  - All player-supplied text is rendered as text, never HTML.
+  - The token is sent as a header, so CSRF doesn't apply.
+  - Internal errors never reveal details.
+- **Network.** `adminHost` / `adminAllowedIps` / `adminAllowedHosts` restrict who can reach it. For
+  remote staff, use a VPN or an SSH tunnel (`ssh -L 8090:127.0.0.1:8090 host`); never expose the port
+  directly.
+
+These protections were checked with an independent security review, and its proof-of-concept exploits
+are kept as regression tests (`Backend/tests/test_admin.py`).
 
 ### How commands reach the game
 

@@ -53,10 +53,20 @@
 
   // ---- API -----------------------------------------------------------------------------------------
 
+  // Auto-refresh polls are marked as background so they don't keep an unattended session alive.
+  let background = false;
+  const IDLE_LIMIT_MS = 15 * 60 * 1000;
+  let lastActivity = Date.now();
+  ["mousedown", "keydown", "wheel", "touchstart"].forEach((type) => document.addEventListener(type, () => { lastActivity = Date.now(); }, { passive: true }));
+  setInterval(() => { if (state.me && Date.now() - lastActivity > IDLE_LIMIT_MS) { signOut(true); toast("Signed out after 15 minutes of inactivity", true); } }, 30000);
+
   async function api(method, path, body) {
+    const headers = { "Content-Type": "application/json" };
+    if (state.token) headers.Authorization = `Bearer ${state.token}`;
+    if (background) headers["X-Cockpit-Background"] = "1";
     const res = await fetch(path, {
       method,
-      headers: Object.assign({ "Content-Type": "application/json" }, state.token ? { Authorization: `Bearer ${state.token}` } : {}),
+      headers,
       body: body ? JSON.stringify(body) : undefined,
       cache: "no-store",
     });
@@ -208,13 +218,15 @@
     document.querySelectorAll(".nav").forEach((b) => b.classList.toggle("active", b.textContent === view.label));
     clearInterval(state.timer);
     const container = $("#view");
-    const draw = async () => {
+    const draw = async (isPoll) => {
       if (document.hidden || $(".modal-backdrop")) return; // don't yank the page from under an open dialog
-      const content = await view.render();
+      background = !!isPoll;
+      let content;
+      try { content = await view.render(); } finally { background = false; }
       if (content && state.view === view.id) container.replaceChildren(content);
     };
-    draw();
-    if (view.refresh) state.timer = setInterval(draw, view.refresh);
+    draw(false);
+    if (view.refresh) state.timer = setInterval(() => draw(true), view.refresh);
   }
 
   const refresh = () => go(state.view);
@@ -268,6 +280,7 @@
     });
     const auditRows = data.recentAudit.map((a) => h("tr", {}, h("td", { class: "small muted" }, ago(a.at)), h("td", {}, a.staffName), h("td", { class: "mono" }, a.action), h("td", { class: "small" }, a.reason)));
     return h("div", { class: "stack" },
+      (data.securityWarnings || []).map((w) => h("div", { class: "banner" }, `Security: ${w}`)),
       header("Overview", can("server.command") ? h("button", { class: "primary", onclick: () => sendCommand("broadcast", { type: "all" }) }, "Broadcast to all") : null),
       h("div", { class: "grid tiles" },
         tile("Players online", num(s.online), `capacity ${num(s.capacity)}`),
@@ -455,7 +468,7 @@
 
     const banRows = d.bans.map((b) => h("tr", {}, h("td", {}, b.active ? pill("active", "bad") : pill(b.revokedAt ? "revoked" : "expired")),
       h("td", {}, b.reason), h("td", { class: "small" }, `${b.createdBy}, ${fmtTime(b.createdAt)}`), h("td", { class: "small" }, b.expiresAt ? fmtTime(b.expiresAt) : "permanent"),
-      h("td", {}, b.active && can("player.ban") ? h("button", { class: "tiny", onclick: () => revokeBan(b).then(reload) }, "Revoke") : null)));
+      h("td", {}, b.active && can("player.unban") ? h("button", { class: "tiny", onclick: () => revokeBan(b).then(reload) }, "Revoke") : null)));
 
     return h("div", { class: "stack" },
       h("div", { class: "panel stack" },
@@ -582,7 +595,7 @@
         h("td", {}, b.reason), h("td", { class: "small" }, `${b.createdBy}, ${fmtTime(b.createdAt)}`),
         h("td", { class: "small" }, b.expiresAt ? fmtTime(b.expiresAt) : "permanent"),
         h("td", { class: "small" }, b.revokedAt ? `${b.revokedBy}: ${b.revokeReason}` : ""),
-        h("td", {}, b.active && can("player.ban") ? h("button", { class: "tiny", onclick: () => revokeBan(b).then(load) }, "Revoke") : null))), "No bans."));
+        h("td", {}, b.active && can("player.unban") ? h("button", { class: "tiny", onclick: () => revokeBan(b).then(load) }, "Revoke") : null))), "No bans."));
     };
     onlyActive.addEventListener("change", load);
     await load();
