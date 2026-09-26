@@ -5,6 +5,7 @@
 #include "Core/BytesSettings.h"
 #include "Game/BytesCharacter.h"
 #include "Game/BytesPlayerState.h"
+#include "Engine/Canvas.h"
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
 #include "Engine/GameInstance.h"

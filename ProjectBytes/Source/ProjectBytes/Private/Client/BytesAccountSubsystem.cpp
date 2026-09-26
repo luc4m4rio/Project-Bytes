@@ -365,6 +365,7 @@ void UBytesAccountSubsystem::ClaimMail(const FString& MailId, const FString& Cha
 				*Existing = Response.Character;
 			}
 			This->Wallet = Response.Currencies;
+			This->Broadcast();
 			This->RefreshMail();
 			This->RefreshInventory(Response.Character.CharacterId);
 			Complete(Done, true, FString());

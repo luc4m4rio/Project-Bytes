@@ -303,6 +303,12 @@ void UBytesDistrictServerSubsystem::FetchCharacter(const FString& CharacterId, T
 
 void UBytesDistrictServerSubsystem::AckCommand(const FString& CommandId, bool bSuccess, const FString& Message)
 {
+	if (ServerId.IsEmpty())
+	{
+		// Re-registering after a backend restart: the old server id is gone, so the ack can't be matched.
+		UE_LOG(LogBytes, Warning, TEXT("Dropping ack for %s (not registered)"), *CommandId);
+		return;
+	}
 	const TSharedPtr<FJsonObject> Entry = MakeShared<FJsonObject>();
 	Entry->SetStringField(TEXT("commandId"), CommandId);
 	Entry->SetBoolField(TEXT("ok"), bSuccess);

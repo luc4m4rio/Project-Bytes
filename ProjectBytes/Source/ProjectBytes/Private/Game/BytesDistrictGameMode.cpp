@@ -13,6 +13,8 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Misc/OutputDevice.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/ScopeLock.h"
 #include "TimerManager.h"
 
 ABytesDistrictGameMode::ABytesDistrictGameMode()
@@ -48,16 +50,32 @@ UClass* ABytesDistrictGameMode::GetDefaultPawnClassForController_Implementation(
 
 namespace
 {
-	/** Captures console output of an exec command so the cockpit sees it. */
+	/**
+	 * Captures console output of an exec command so the cockpit sees it. Many commands print through GLog rather
+	 * than the passed device, so this is also attached to GLog for the duration of the call (hence the lock).
+	 */
 	class FBytesCaptureOutput : public FOutputDevice
 	{
 	public:
-		FString Text;
 		virtual void Serialize(const TCHAR* Line, ELogVerbosity::Type Verbosity, const FName& Category) override
 		{
-			Text += Line;
-			Text += TEXT("\n");
+			FScopeLock Lock(&Mutex);
+			if (Text.Len() < 8000)
+			{
+				Text += Line;
+				Text += TEXT("\n");
+			}
 		}
+
+		FString Get()
+		{
+			FScopeLock Lock(&Mutex);
+			return Text;
+		}
+
+	private:
+		FCriticalSection Mutex;
+		FString Text;
 	};
 }
 
@@ -115,10 +133,14 @@ void ABytesDistrictGameMode::HandleStaffCommand(const FBytesServerCommand& Comma
 	{
 		const int32 Delay = FMath::Clamp(Command.DelaySeconds, 0, 600);
 		StaffMessageAll(FString::Printf(TEXT("%s (closing in %d s)"), *Command.Message, Delay), TEXT("warning"));
+		// A newer shutdown command replaces an older countdown completely.
+		GetWorldTimerManager().ClearTimer(ShutdownWarningTimer);
 		if (Delay > 15)
 		{
-			GetWorldTimerManager().SetTimer(ShutdownWarningTimer, FTimerDelegate::CreateUObject(this,
-				&ThisClass::StaffMessageAll, FString(TEXT("District closing in 10 seconds")), FString(TEXT("warning"))), Delay - 10.f, false);
+			GetWorldTimerManager().SetTimer(ShutdownWarningTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+			{
+				StaffMessageAll(TEXT("District closing in 10 seconds"), TEXT("warning"));
+			}), Delay - 10.f, false);
 		}
 		GetWorldTimerManager().SetTimer(ShutdownTimer, FTimerDelegate::CreateUObject(this, &ThisClass::FinishStaffShutdown, Command.Message),
 			FMath::Max(0.1f, static_cast<float>(Delay)), false);
@@ -127,10 +149,13 @@ void ABytesDistrictGameMode::HandleStaffCommand(const FBytesServerCommand& Comma
 	}
 	if (Command.Type == TEXT("exec"))
 	{
-		FBytesCaptureOutput Output;
-		const bool bHandled = GEngine && GEngine->Exec(GetWorld(), *Command.ConsoleCommand, Output);
 		UE_LOG(LogBytes, Display, TEXT("Staff exec: %s"), *Command.ConsoleCommand);
-		Server->AckCommand(Id, bHandled, bHandled ? (Output.Text.IsEmpty() ? FString(TEXT("OK")) : Output.Text) : FString(TEXT("Command not recognised")));
+		FBytesCaptureOutput Output;
+		GLog->AddOutputDevice(&Output);
+		const bool bHandled = GEngine && GEngine->Exec(GetWorld(), *Command.ConsoleCommand, Output);
+		GLog->RemoveOutputDevice(&Output);
+		const FString Text = Output.Get();
+		Server->AckCommand(Id, bHandled, bHandled ? (Text.IsEmpty() ? FString(TEXT("OK")) : Text) : FString(TEXT("Command not recognised")));
 		return;
 	}
 
@@ -175,7 +200,7 @@ void ABytesDistrictGameMode::HandleStaffCommand(const FBytesServerCommand& Comma
 			}
 			if (UBytesDistrictServerSubsystem* S = WeakServer.Get())
 			{
-				S->AckCommand(Id, bSuccess && State, bSuccess ? TEXT("Refreshed") : TEXT("Backend lookup failed"));
+				S->AckCommand(Id, bSuccess && State, bSuccess ? (State ? TEXT("Refreshed") : TEXT("Player left before the refresh")) : TEXT("Backend lookup failed"));
 			}
 		});
 	}
@@ -203,7 +228,9 @@ void ABytesDistrictGameMode::FinishStaffShutdown(FString Message)
 		}
 	}
 	UE_LOG(LogBytes, Display, TEXT("Shutting down by staff request"));
-	RequestEngineExit(TEXT("Root cockpit shutdown"));
+	// Give the reliable kick messages a second to reach clients before the process exits.
+	FTimerHandle ExitTimer;
+	GetWorldTimerManager().SetTimer(ExitTimer, FTimerDelegate::CreateLambda([]() { RequestEngineExit(TEXT("Root cockpit shutdown")); }), 1.f, false);
 }
 
 // ---- Login pipeline -----------------------------------------------------------------------------

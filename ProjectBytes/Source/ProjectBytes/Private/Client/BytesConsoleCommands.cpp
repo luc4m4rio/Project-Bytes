@@ -332,7 +332,8 @@ namespace BytesConsole
 						{
 							Contents.Add(Attachment.DisplayName);
 						}
-						UE_LOG(LogBytes, Display, TEXT("  %d. %s - %s  [%s]  (%s)"), ++Number, *Entry.Subject, *Entry.Sender,
+						++Number; // not inside UE_LOG: its arguments aren't evaluated when logging is compiled out
+						UE_LOG(LogBytes, Display, TEXT("  %d. %s - %s  [%s]  (%s)"), Number, *Entry.Subject, *Entry.Sender,
 							*FString::Join(Contents, TEXT(", ")), *Entry.MailId);
 					}
 					if (Number == 0)
