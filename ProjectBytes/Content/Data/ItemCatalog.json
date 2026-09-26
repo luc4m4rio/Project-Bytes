@@ -1,0 +1,193 @@
+{
+ "_comment": "Items staff can grant or gift, and players can own. Shared by the backend (economy.py) and the game.",
+ "version": 1,
+ "currencies": [
+  {
+   "id": "money",
+   "displayName": "$",
+   "scope": "character",
+   "description": "In-game cash earned in districts"
+  },
+  {
+   "id": "bp",
+   "displayName": "BP",
+   "scope": "account",
+   "description": "General account currency shared by all characters"
+  }
+ ],
+ "items": [
+  {
+   "id": "wpn_star556",
+   "displayName": "STAR 556",
+   "category": "weapon",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0
+  },
+  {
+   "id": "wpn_obir",
+   "displayName": "OBIR",
+   "category": "weapon",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0
+  },
+  {
+   "id": "wpn_ntec5",
+   "displayName": "N-TEC 5",
+   "category": "weapon",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0
+  },
+  {
+   "id": "wpn_oca_ew",
+   "displayName": "OCA-EW 690",
+   "category": "weapon",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0
+  },
+  {
+   "id": "wpn_jg_shotgun",
+   "displayName": "JG Shotgun",
+   "category": "weapon",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0
+  },
+  {
+   "id": "wpn_obeya_cr762",
+   "displayName": "Obeya CR762",
+   "category": "weapon",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0
+  },
+  {
+   "id": "wpn_fbw",
+   "displayName": "FBW Frag Launcher",
+   "category": "weapon",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0
+  },
+  {
+   "id": "wpn_ntec5_gold",
+   "displayName": "N-TEC 5 'Gilded'",
+   "category": "weapon",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0,
+   "special": true
+  },
+  {
+   "id": "veh_vegas",
+   "displayName": "Vegas",
+   "category": "vehicle",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0
+  },
+  {
+   "id": "veh_pioneer",
+   "displayName": "Pioneer",
+   "category": "vehicle",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0
+  },
+  {
+   "id": "veh_espacio",
+   "displayName": "Espacio",
+   "category": "vehicle",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0
+  },
+  {
+   "id": "veh_han_vk",
+   "displayName": "HAN-VK",
+   "category": "vehicle",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0
+  },
+  {
+   "id": "veh_bishada",
+   "displayName": "Bishada Seu",
+   "category": "vehicle",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0,
+   "special": true
+  },
+  {
+   "id": "con_frag_grenade",
+   "displayName": "Frag Grenade",
+   "category": "consumable",
+   "stackable": true,
+   "maxStack": 10,
+   "durationDays": 0
+  },
+  {
+   "id": "con_medspray",
+   "displayName": "Med Spray",
+   "category": "consumable",
+   "stackable": true,
+   "maxStack": 10,
+   "durationDays": 0
+  },
+  {
+   "id": "con_ammo_pack",
+   "displayName": "Ammo Pack",
+   "category": "consumable",
+   "stackable": true,
+   "maxStack": 20,
+   "durationDays": 0
+  },
+  {
+   "id": "spc_xp_boost_2x_1d",
+   "displayName": "2x Standing Boost (1 day)",
+   "category": "special",
+   "stackable": true,
+   "maxStack": 99,
+   "durationDays": 0,
+   "description": "Doubles standing earned for 24h after use"
+  },
+  {
+   "id": "spc_name_change",
+   "displayName": "Name Change Token",
+   "category": "special",
+   "stackable": true,
+   "maxStack": 5,
+   "durationDays": 0
+  },
+  {
+   "id": "spc_title_founder",
+   "displayName": "Title: Founder",
+   "category": "special",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0,
+   "description": "Permanent profile title"
+  },
+  {
+   "id": "spc_event_crown",
+   "displayName": "Event Crown",
+   "category": "clothing",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 30,
+   "description": "Cosmetic, 30-day rental"
+  },
+  {
+   "id": "spc_jericho_tag",
+   "displayName": "Jericho Tag Spray",
+   "category": "special",
+   "stackable": false,
+   "maxStack": 1,
+   "durationDays": 0
+  }
+ ]
+}

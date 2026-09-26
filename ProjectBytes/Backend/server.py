@@ -40,6 +40,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import appearance as appearance_rules
+import economy as economy_rules
+import orchestrator as orchestration
+import staff as staff_rules
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CONFIG_PATH = os.path.join(HERE, "config.json")
@@ -56,6 +59,13 @@ DEFAULT_CONFIG = {
     "port": 8080,
     "database": "Saved/bytes.db",
     "appearanceCatalog": "../Content/Data/AppearanceCatalog.json",
+    "itemCatalog": "../Content/Data/ItemCatalog.json",
+    # Root cockpit (staff control panel). Separate listener; keep it on localhost / behind a VPN.
+    "adminHost": "127.0.0.1",
+    "adminPort": 8090,
+    "adminAllowedIps": [],
+    "staffRequire2FA": True,
+    "deploy": {},
     "devMode": True,
     "serverKey": "dev-server-key-change-me",
     "sessionTtlSeconds": 7 * 24 * 3600,
@@ -202,8 +212,10 @@ def load_config(path: str | None) -> dict:
 
     if cfg["database"] != ":memory:" and not os.path.isabs(cfg["database"]):
         cfg["database"] = os.path.join(base_dir, cfg["database"])
-    if cfg["appearanceCatalog"] and not os.path.isabs(cfg["appearanceCatalog"]):
-        cfg["appearanceCatalog"] = os.path.normpath(os.path.join(base_dir, cfg["appearanceCatalog"]))
+    for key in ("appearanceCatalog", "itemCatalog"):
+        if cfg.get(key) and not os.path.isabs(cfg[key]):
+            cfg[key] = os.path.normpath(os.path.join(base_dir, cfg[key]))
+    cfg["_baseDir"] = base_dir
 
     districts = {}
     for d in cfg["districts"]:
@@ -257,6 +269,32 @@ CREATE TABLE IF NOT EXISTS characters (
     online_instance TEXT NOT NULL DEFAULT '',
     created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS bans (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    created_by TEXT NOT NULL,
+    expires_at INTEGER,
+    revoked_at INTEGER,
+    revoked_by TEXT NOT NULL DEFAULT '',
+    revoke_reason TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS bans_account ON bans(account_id);
+CREATE TABLE IF NOT EXISTS server_commands (
+    id TEXT PRIMARY KEY,
+    server_id TEXT NOT NULL,
+    instance_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    created_by TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'queued',
+    delivered_at INTEGER,
+    completed_at INTEGER,
+    result TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS server_commands_server ON server_commands(server_id, status);
 CREATE TABLE IF NOT EXISTS tickets (
     id TEXT PRIMARY KEY,
     account_id TEXT NOT NULL,
@@ -288,6 +326,9 @@ class Backend:
         self.ticket_key = self._load_or_create_ticket_key()
         # Same catalog the game ships (Content/Data/AppearanceCatalog.json): the backend is the authority on
         # which parts/tattoos a character has unlocked.
+        self.economy = economy_rules.Economy(self.db, self.lock, economy_rules.ItemCatalog.load(cfg.get("itemCatalog")))
+        self.staff = staff_rules.StaffService(self.db, self.lock, cfg)
+        self.orchestrator = orchestration.Orchestrator(cfg, cfg.get("_baseDir", HERE))
         self.catalog = None
         if cfg.get("appearanceCatalog") and os.path.exists(cfg["appearanceCatalog"]):
             self.catalog = appearance_rules.Catalog.load(cfg["appearanceCatalog"])
@@ -375,6 +416,8 @@ class Backend:
 
     def _drop_server(self, server_id: str) -> None:
         server = self.servers.pop(server_id, None)
+        self.db.execute("UPDATE server_commands SET status = 'undeliverable', completed_at = ? "
+                        "WHERE server_id = ? AND status IN ('queued', 'delivered')", (now(), server_id))
         if server:
             self.db.execute("UPDATE characters SET online_instance = '' WHERE online_instance = ?",
                             (server["instanceId"],))
@@ -393,6 +436,22 @@ class Backend:
             "population": len(server["characterIds"]),
             "maxPlayers": server["maxPlayers"],
         }
+
+    def active_ban(self, account_id: str):
+        return self.db.execute(
+            "SELECT * FROM bans WHERE account_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?) "
+            "ORDER BY COALESCE(expires_at, 9999999999) DESC LIMIT 1", (account_id, now())).fetchone()
+
+    @staticmethod
+    def ban_reasons(ban) -> list[str]:
+        until = "permanently" if not ban["expires_at"] else \
+            "until " + time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(ban["expires_at"]))
+        return [f"Reason: {ban['reason']}", f"Banned {until}"]
+
+    def _refuse_if_banned(self, account_id: str) -> None:
+        ban = self.active_ban(account_id)
+        if ban:
+            raise ApiError(403, "This account is banned", self.ban_reasons(ban))
 
     def authenticate(self, headers) -> sqlite3.Row:
         auth = headers.get("Authorization") or ""
@@ -437,6 +496,8 @@ class Backend:
             row = self.db.execute("SELECT * FROM accounts WHERE username = ?", (username,)).fetchone()
         if not row or not hmac.compare_digest(self._hash_password(password, row["pw_salt"]), row["pw_hash"]):
             raise ApiError(401, "Wrong username or password")
+        with self.lock:
+            self._refuse_if_banned(row["id"])
         token = secrets.token_urlsafe(32)
         with self.lock:
             self.db.execute("DELETE FROM sessions WHERE expires_at < ?", (now(),))
@@ -553,6 +614,7 @@ class Backend:
         district_id = str(body.get("districtId") or "")
         instance_id = str(body.get("instanceId") or "")
         with self.lock:
+            self._refuse_if_banned(account["id"])
             character = self._owned_character(account, str(body.get("characterId") or ""))
             district = self._district(district_id)
             flags = json.loads(account["flags"])
@@ -671,7 +733,8 @@ class Backend:
             self.db.commit()
             server["characterIds"] = current
             server["lastSeen"] = now()
-        return {"ok": True}
+            commands = self._take_commands(server["serverId"])
+        return {"ok": True, "commands": commands}
 
     def server_unregister(self, headers, body: dict) -> dict:
         self._require_server_key(headers)
@@ -699,6 +762,9 @@ class Backend:
                 raise ApiError(409, "Ticket has already been used")
             if ticket["expires_at"] < now():
                 raise ApiError(410, "Ticket expired")
+            ban = self.active_ban(ticket["account_id"])
+            if ban:
+                raise ApiError(403, "Account is banned", self.ban_reasons(ban))
             self.db.execute("UPDATE tickets SET redeemed_at = ? WHERE id = ?", (now(), ticket["id"]))
             self.db.execute("UPDATE characters SET online_instance = ?, last_district = ? WHERE id = ?",
                             (server["instanceId"], server["districtId"], ticket["character_id"]))
@@ -727,6 +793,88 @@ class Backend:
             self.db.commit()
             row = self.db.execute("SELECT * FROM characters WHERE id = ?", (row["id"],)).fetchone()
         return {"character": self._character_json(row)}
+
+    # -- staff command queue (delivered on heartbeat) -----------------------------------------------
+
+    COMMAND_FIELDS = ("characterId", "message", "reason", "style", "consoleCommand")
+
+    def queue_command(self, server_id: str, command_type: str, payload: dict, created_by: str) -> str:
+        """Caller holds the lock. Payload is flattened into fixed fields the C++ side parses."""
+        server = self.servers.get(server_id)
+        if not server:
+            raise ApiError(404, "That server is not online")
+        command_id = "cmd_" + secrets.token_hex(8)
+        self.db.execute("INSERT INTO server_commands (id, server_id, instance_id, type, payload, created_at, created_by) "
+                        "VALUES (?,?,?,?,?,?,?)",
+                        (command_id, server_id, server["instanceId"], command_type, json.dumps(payload), now(), created_by))
+        self.db.commit()
+        return command_id
+
+    def _take_commands(self, server_id: str) -> list[dict]:
+        rows = self.db.execute("SELECT * FROM server_commands WHERE server_id = ? AND status = 'queued' ORDER BY created_at",
+                               (server_id,)).fetchall()
+        out = []
+        for row in rows:
+            payload = json.loads(row["payload"])
+            command = {"commandId": row["id"], "type": row["type"], "delaySeconds": int(payload.get("delaySeconds") or 0)}
+            for key in self.COMMAND_FIELDS:
+                command[key] = str(payload.get(key) or "")
+            out.append(command)
+        if rows:
+            self.db.execute(f"UPDATE server_commands SET status = 'delivered', delivered_at = ? WHERE id IN "
+                            f"({','.join('?' for _ in rows)})", [now()] + [r["id"] for r in rows])
+            self.db.commit()
+        return out
+
+    def server_ack_commands(self, headers, body: dict) -> dict:
+        self._require_server_key(headers)
+        with self.lock:
+            server_id = str(body.get("serverId") or "")
+            for result in body.get("results") or []:
+                self.db.execute("UPDATE server_commands SET status = ?, completed_at = ?, result = ? WHERE id = ? AND server_id = ?",
+                                ("done" if result.get("ok") else "failed", now(), str(result.get("message") or "")[:4000],
+                                 str(result.get("commandId") or ""), server_id))
+            self.db.commit()
+        return {}
+
+    def server_get_character(self, headers, body: dict) -> dict:
+        """Fresh character record for a player already in the district (after staff grants)."""
+        self._require_server_key(headers)
+        with self.lock:
+            self._server(body.get("serverId"))
+            row = self.db.execute("SELECT * FROM characters WHERE id = ?", (str(body.get("characterId") or ""),)).fetchone()
+            if not row:
+                raise ApiError(404, "Unknown character")
+        return {"character": self._character_json(row)}
+
+    # -- wallet / inventory / mail (player API) -----------------------------------------------------
+
+    def wallet(self, account) -> dict:
+        with self.lock:
+            return {"currencies": self.economy.wallet(account["id"])}
+
+    def character_inventory(self, account, character_id: str) -> dict:
+        with self.lock:
+            self._owned_character(account, character_id)
+            items = self.economy.inventory(character_id)
+            self.db.commit()
+        return {"items": items}
+
+    def mailbox(self, account) -> dict:
+        with self.lock:
+            return {"mail": self.economy.mailbox(account["id"])}
+
+    def claim_mail(self, account, mail_id: str, body: dict) -> dict:
+        with self.lock:
+            character = self._owned_character(account, str(body.get("characterId") or ""))
+            try:
+                result = self.economy.claim(account["id"], mail_id, character["id"])
+                self.db.commit()
+            except economy_rules.EconomyError as e:
+                self.db.rollback()
+                raise ApiError(e.status, e.message)
+            character = self.db.execute("SELECT * FROM characters WHERE id = ?", (character["id"],)).fetchone()
+        return dict(result, character=self._character_json(character), currencies=self.economy.wallet(account["id"]))
 
     # -- dev / admin --------------------------------------------------------------------------------
 
@@ -810,6 +958,14 @@ ROUTES = [
     ("POST", r"/v1/servers/unregister", lambda b, r: b.server_unregister(r.headers, r.body)),
     ("POST", r"/v1/servers/redeem", lambda b, r: b.server_redeem(r.headers, r.body)),
     ("POST", r"/v1/servers/characters/update", lambda b, r: b.server_update_character(r.headers, r.body)),
+    ("POST", r"/v1/servers/commands/ack", lambda b, r: b.server_ack_commands(r.headers, r.body)),
+    ("POST", r"/v1/servers/characters/get", lambda b, r: b.server_get_character(r.headers, r.body)),
+    ("GET", r"/v1/wallet", lambda b, r: b.wallet(b.authenticate(r.headers))),
+    ("GET", r"/v1/characters/(?P<cid>[A-Za-z0-9_]+)/inventory",
+     lambda b, r: b.character_inventory(b.authenticate(r.headers), r.params["cid"])),
+    ("GET", r"/v1/mail", lambda b, r: b.mailbox(b.authenticate(r.headers))),
+    ("POST", r"/v1/mail/(?P<mid>[A-Za-z0-9_]+)/claim",
+     lambda b, r: b.claim_mail(b.authenticate(r.headers), r.params["mid"], r.body)),
     ("POST", r"/v1/dev/characters/set", lambda b, r: b.dev_set_character(b.authenticate(r.headers), r.body)),
 ]
 COMPILED_ROUTES = [(m, re.compile(p), fn) for m, p, fn in ROUTES]
@@ -817,27 +973,72 @@ COMPILED_ROUTES = [(m, re.compile(p), fn) for m, p, fn in ROUTES]
 
 class Handler(BaseHTTPRequestHandler):
     backend: Backend = None  # set by make_server
+    routes = COMPILED_ROUTES
     quiet = False
+    static_dir: str | None = None       # admin listener: serves the cockpit UI
+    allowed_ips: list[str] = []         # admin listener: optional IP allowlist
+    security_headers = False
     server_version = "BytesBackend/1.0"
     protocol_version = "HTTP/1.1"
+
+    STATIC_TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+                    ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png"}
 
     def log_message(self, fmt, *args):
         if not self.quiet:
             sys.stderr.write("[http] %s %s\n" % (self.address_string(), fmt % args))
+
+    def _headers(self) -> None:
+        if self.security_headers:
+            self.send_header("Content-Security-Policy",
+                             "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "
+                             "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("Cache-Control", "no-store")
 
     def _send(self, status: int, payload: dict) -> None:
         data = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))
+        self._headers()
         self.end_headers()
         self.wfile.write(data)
 
+    def _serve_static(self, path: str) -> bool:
+        if not self.static_dir:
+            return False
+        name = "index.html" if path in ("/", "") else path.lstrip("/")
+        full = os.path.normpath(os.path.join(self.static_dir, name))
+        ext = os.path.splitext(full)[1]
+        if not full.startswith(os.path.normpath(self.static_dir) + os.sep) or ext not in self.STATIC_TYPES \
+                or not os.path.isfile(full):
+            return False
+        with open(full, "rb") as f:
+            data = f.read()
+        self.send_response(200)
+        self.send_header("Content-Type", self.STATIC_TYPES[ext])
+        self.send_header("Content-Length", str(len(data)))
+        self._headers()
+        self.end_headers()
+        self.wfile.write(data)
+        return True
+
     def _dispatch(self, method: str) -> None:
         parsed = urlparse(self.path)
+        if self.allowed_ips and self.client_address[0] not in self.allowed_ips:
+            self._send(403, {"error": "Forbidden", "reasons": []})
+            return
         length = int(self.headers.get("Content-Length") or 0)
+        if length > 1_000_000:
+            self._send(413, {"error": "Request too large", "reasons": []})
+            return
         raw = self.rfile.read(length) if length > 0 else b""
         try:
+            if method == "GET" and not parsed.path.startswith(("/v1/", "/admin/")) and self._serve_static(parsed.path):
+                return
             try:
                 body = json.loads(raw.decode("utf-8")) if raw.strip() else {}
             except (ValueError, UnicodeDecodeError):
@@ -845,7 +1046,7 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(body, dict):
                 raise ApiError(400, "Request body must be a JSON object")
             path_matched = False
-            for route_method, pattern, fn in COMPILED_ROUTES:
+            for route_method, pattern, fn in self.routes:
                 match = pattern.fullmatch(parsed.path)
                 if not match:
                     continue
@@ -858,7 +1059,9 @@ class Handler(BaseHTTPRequestHandler):
             raise ApiError(405 if path_matched else 404, f"No route for {method} {parsed.path}")
         except ApiError as e:
             self._send(e.status, {"error": e.message, "reasons": e.reasons})
-        except Exception as e:  # keep the dev server alive, but make the failure loud
+        except (staff_rules.StaffError, economy_rules.EconomyError, orchestration.DeployError) as e:
+            self._send(e.status, {"error": e.message, "reasons": []})
+        except Exception as e:  # keep the server alive, but make the failure loud
             import traceback
             traceback.print_exc()
             self._send(500, {"error": f"Internal error: {e}", "reasons": []})
@@ -875,6 +1078,19 @@ class Handler(BaseHTTPRequestHandler):
 
 def make_server(backend: Backend, host: str, port: int, quiet: bool = False) -> ThreadingHTTPServer:
     handler = type("BoundHandler", (Handler,), {"backend": backend, "quiet": quiet})
+    server = ThreadingHTTPServer((host, port), handler)
+    server.daemon_threads = True
+    return server
+
+
+def make_admin_server(backend: Backend, host: str, port: int, quiet: bool = False) -> ThreadingHTTPServer:
+    """Root cockpit listener: admin API + UI only (no game routes), security headers, optional IP allowlist."""
+    import admin
+    handler = type("AdminHandler", (Handler,), {
+        "backend": backend, "quiet": quiet, "routes": admin.COMPILED_ADMIN_ROUTES,
+        "static_dir": os.path.join(HERE, "cockpit"), "allowed_ips": list(backend.cfg.get("adminAllowedIps") or []),
+        "security_headers": True,
+    })
     server = ThreadingHTTPServer((host, port), handler)
     server.daemon_threads = True
     return server
@@ -916,6 +1132,50 @@ def _admin(backend: Backend, args) -> int:
     return 0
 
 
+def _staff_cli(backend: Backend, args) -> int:
+    import getpass
+    service = backend.staff
+    if args.staff_cmd == "create":
+        password = args.password or getpass.getpass(f"Password for {args.username} (12+ chars): ")
+        try:
+            created, secret = service.create(args.username, password, args.role, "cli", with_2fa=not args.no_2fa)
+        except staff_rules.StaffError as e:
+            print(e.message)
+            return 1
+        service.audit({"staffId": "", "username": "cli"}, "staff.created", "staff", created["staffId"],
+                      "created from the command line", {"username": created["username"], "role": args.role})
+        print(f"Created {args.role} '{created['username']}'.")
+        if secret:
+            print("Add this to an authenticator app (Google Authenticator, 1Password, Authy...):")
+            print(f"  secret: {secret}")
+            print(f"  uri:    {staff_rules.totp_uri(secret, created['username'])}")
+            print(f"  current code (to check your app): {staff_rules.totp_code(secret)}")
+        elif service.require_2fa:
+            print("WARNING: staffRequire2FA is on, so this account can't sign in until 2FA is reset.")
+    elif args.staff_cmd == "list":
+        for row in backend.db.execute("SELECT * FROM staff ORDER BY created_at"):
+            print(f"{row['username']:<20} {row['role']:<11} 2FA={'yes' if row['totp_secret'] else 'no ':<3} "
+                  f"{'DISABLED' if row['disabled'] else ''}")
+    elif args.staff_cmd == "reset-2fa":
+        secret = staff_rules.new_totp_secret()
+        cur = backend.db.execute("UPDATE staff SET totp_secret = ? WHERE username = ?", (secret, args.username))
+        backend.db.commit()
+        if not cur.rowcount:
+            print(f"Unknown staff '{args.username}'")
+            return 1
+        service.audit({"staffId": "", "username": "cli"}, "staff.2fa_reset", "staff", args.username,
+                      "reset from the command line")
+        print(f"New secret for {args.username}: {secret}\n  uri: {staff_rules.totp_uri(secret, args.username)}")
+    elif args.staff_cmd in ("disable", "enable"):
+        cur = backend.db.execute("UPDATE staff SET disabled = ? WHERE username = ?",
+                                 (1 if args.staff_cmd == "disable" else 0, args.username))
+        backend.db.commit()
+        print(f"{args.username}: {args.staff_cmd}d" if cur.rowcount else f"Unknown staff '{args.username}'")
+    elif args.staff_cmd == "verify-audit":
+        print(json.dumps(service.verify_audit_chain(), indent=2))
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Project Bytes backend (accounts, characters, districts)")
     parser.add_argument("--config", default=DEFAULT_CONFIG_PATH)
@@ -942,6 +1202,18 @@ def main(argv=None) -> int:
     sl.add_argument("username")
     sl.add_argument("count", type=int)
 
+    st = sub.add_parser("staff", help="root cockpit staff accounts (run on the server machine)")
+    st_sub = st.add_subparsers(dest="staff_cmd", required=True)
+    sc = st_sub.add_parser("create", help="create a staff account (the first one should be an owner)")
+    sc.add_argument("username")
+    sc.add_argument("--role", default="owner")
+    sc.add_argument("--password", help="omit to be prompted")
+    sc.add_argument("--no-2fa", action="store_true", help="only if staffRequire2FA is false (local dev)")
+    st_sub.add_parser("list")
+    for name in ("reset-2fa", "disable", "enable"):
+        st_sub.add_parser(name).add_argument("username")
+    st_sub.add_parser("verify-audit", help="check the audit log hash chain")
+
     args = parser.parse_args(argv)
     cfg = load_config(args.config)
     if args.host:
@@ -965,19 +1237,35 @@ def main(argv=None) -> int:
         except ApiError as e:
             print(e.message)
             return 1
+    if args.cmd == "staff":
+        return _staff_cli(backend, args)
 
     httpd = make_server(backend, cfg["host"], cfg["port"], quiet=args.quiet)
     print(f"[backend] Project Bytes backend listening on http://{cfg['host']}:{cfg['port']}  "
           f"(db: {cfg['database']}, devMode={cfg['devMode']})", flush=True)
     print(f"[backend] districts: {', '.join(backend.districts)}", flush=True)
+    admin_httpd = None
+    if cfg.get("adminPort"):
+        admin_httpd = make_admin_server(backend, cfg["adminHost"], cfg["adminPort"], quiet=args.quiet)
+        threading.Thread(target=admin_httpd.serve_forever, daemon=True).start()
+        staff_count = backend.db.execute("SELECT COUNT(*) FROM staff").fetchone()[0]
+        print(f"[backend] root cockpit on http://{cfg['adminHost']}:{cfg['adminPort']}/ "
+              f"({staff_count} staff account(s){'' if staff_count else ' - create one: python Backend/server.py staff create <name>'})",
+              flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
         httpd.server_close()
+        if admin_httpd:
+            admin_httpd.shutdown()
+        backend.orchestrator.shutdown_all()
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # Run through the importable module so admin.py (which imports `server`) shares the same classes.
+    sys.path.insert(0, HERE)
+    import server as _server_module
+    sys.exit(_server_module.main())
