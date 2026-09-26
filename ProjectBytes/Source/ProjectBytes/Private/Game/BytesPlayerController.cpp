@@ -47,3 +47,25 @@ void ABytesPlayerController::ServerDevSetMovementFeel_Implementation(uint8 Feel)
 	}
 #endif
 }
+
+void ABytesPlayerController::ClientStaffMessage_Implementation(const FString& Message, const FString& Style)
+{
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UBytesAccountSubsystem* Account = GameInstance->GetSubsystem<UBytesAccountSubsystem>())
+		{
+			Account->PushStaffMessage(Message, Style);
+		}
+	}
+}
+
+void ABytesPlayerController::ClientRefreshAccount_Implementation()
+{
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UBytesAccountSubsystem* Account = GameInstance->GetSubsystem<UBytesAccountSubsystem>())
+		{
+			Account->RefreshCharacters(); // also refreshes wallet, mail and the selected character's inventory
+		}
+	}
+}

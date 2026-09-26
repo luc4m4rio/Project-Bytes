@@ -12,6 +12,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/IConsoleManager.h"
+#include "HAL/PlatformTime.h"
 
 static TAutoConsoleVariable<int32> CVarBytesHUD(
 	TEXT("bytes.HUD"), 1, TEXT("Show the Project Bytes debug HUD (0/1)."));
@@ -90,6 +91,33 @@ void ABytesDebugHUD::DrawHUD()
 			Line(TEXT("- ") + Reason, Bad, 16.f);
 		}
 	}
+	if (Account)
+	{
+		DrawStaffMessages(Account);
+	}
+}
+
+void ABytesDebugHUD::DrawStaffMessages(UBytesAccountSubsystem* Account)
+{
+	// Staff broadcasts as toasts, top-centre, for 10 seconds each.
+	const double Now = FPlatformTime::Seconds();
+	float Y = 32.f;
+	UFont* Font = GEngine ? GEngine->GetMediumFont() : nullptr;
+	for (const FBytesStaffMessage& Message : Account->GetStaffMessagesRef())
+	{
+		if (Now - Message.ReceivedAt > 10.0)
+		{
+			continue;
+		}
+		const FLinearColor Color = Message.Style == TEXT("warning") ? Bad
+			: Message.Style == TEXT("gift") ? Good : Message.Style == TEXT("event") ? Title : FLinearColor(0.55f, 0.8f, 1.f);
+		const FString Text = FString::Printf(TEXT("[STAFF] %s"), *Message.Message);
+		float Width = 0.f;
+		float Height = 0.f;
+		GetTextSize(Text, Width, Height, Font);
+		DrawText(Text, Color, (Canvas->ClipX - Width) * 0.5f, Y, Font);
+		Y += Height + 6.f;
+	}
 }
 
 void ABytesDebugHUD::DrawFrontend(UBytesAccountSubsystem* Account)
@@ -107,6 +135,15 @@ void ABytesDebugHUD::DrawFrontend(UBytesAccountSubsystem* Account)
 	const FBytesAccount AccountInfo = Account->GetAccount();
 	Line(FString::Printf(TEXT("Account: %s%s"), *AccountInfo.Username,
 		AccountInfo.Flags.Num() > 0 ? *FString::Printf(TEXT("  flags: %s"), *FString::Join(AccountInfo.Flags, TEXT(", "))) : TEXT("")));
+
+	TArray<FString> Balances;
+	for (const FBytesCurrencyBalance& Balance : Account->GetWalletRef())
+	{
+		Balances.Add(FString::Printf(TEXT("%lld %s"), Balance.Amount, *Balance.DisplayName));
+	}
+	const int32 MailCount = Account->GetMailRef().Num();
+	Line(FString::Printf(TEXT("Wallet: %s   |   Mail: %d unclaimed%s"), Balances.Num() > 0 ? *FString::Join(Balances, TEXT(", ")) : TEXT("-"),
+		MailCount, MailCount > 0 ? TEXT("  (bytes.Mail, bytes.Claim 1)") : TEXT("")), MailCount > 0 ? Good : Dim);
 
 	const TArray<FBytesCharacter>& Characters = Account->GetCharactersRef();
 	const FBytesCharacter* Selected = Account->GetSelectedCharacterPtr();

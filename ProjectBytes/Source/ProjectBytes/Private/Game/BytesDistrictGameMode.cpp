@@ -10,6 +10,10 @@
 #include "GameFramework/GameSession.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
+#include "Misc/OutputDevice.h"
+#include "TimerManager.h"
 
 ABytesDistrictGameMode::ABytesDistrictGameMode()
 {
@@ -38,6 +42,168 @@ UClass* ABytesDistrictGameMode::GetDefaultPawnClassForController_Implementation(
 		return PawnClass;
 	}
 	return Super::GetDefaultPawnClassForController_Implementation(InController);
+}
+
+// ---- Staff commands (root cockpit) --------------------------------------------------------------
+
+namespace
+{
+	/** Captures console output of an exec command so the cockpit sees it. */
+	class FBytesCaptureOutput : public FOutputDevice
+	{
+	public:
+		FString Text;
+		virtual void Serialize(const TCHAR* Line, ELogVerbosity::Type Verbosity, const FName& Category) override
+		{
+			Text += Line;
+			Text += TEXT("\n");
+		}
+	};
+}
+
+void ABytesDistrictGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
+{
+	Super::InitGame(MapName, Options, ErrorMessage);
+	if (UBytesDistrictServerSubsystem* Server = GetServerSubsystem())
+	{
+		StaffCommandHandle = Server->OnCommand.AddUObject(this, &ThisClass::HandleStaffCommand);
+	}
+}
+
+void ABytesDistrictGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UBytesDistrictServerSubsystem* Server = GetServerSubsystem())
+	{
+		Server->OnCommand.Remove(StaffCommandHandle);
+	}
+	Super::EndPlay(EndPlayReason);
+}
+
+APlayerController* ABytesDistrictGameMode::FindPlayerByCharacter(const FString& CharacterId) const
+{
+	const TWeakObjectPtr<APlayerController>* Found = CharacterControllers.Find(CharacterId);
+	return Found ? Found->Get() : nullptr;
+}
+
+void ABytesDistrictGameMode::StaffMessageAll(const FString& Message, const FString& Style)
+{
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		if (ABytesPlayerController* PC = Cast<ABytesPlayerController>(It->Get()))
+		{
+			PC->ClientStaffMessage(Message, Style);
+		}
+	}
+}
+
+void ABytesDistrictGameMode::HandleStaffCommand(const FBytesServerCommand& Command)
+{
+	UBytesDistrictServerSubsystem* Server = GetServerSubsystem();
+	if (!Server)
+	{
+		return;
+	}
+	const FString& Id = Command.CommandId;
+
+	if (Command.Type == TEXT("broadcast"))
+	{
+		StaffMessageAll(Command.Message, Command.Style);
+		Server->AckCommand(Id, true, FString::Printf(TEXT("Shown to %d player(s)"), GetNumPlayers()));
+		return;
+	}
+	if (Command.Type == TEXT("shutdown"))
+	{
+		const int32 Delay = FMath::Clamp(Command.DelaySeconds, 0, 600);
+		StaffMessageAll(FString::Printf(TEXT("%s (closing in %d s)"), *Command.Message, Delay), TEXT("warning"));
+		if (Delay > 15)
+		{
+			GetWorldTimerManager().SetTimer(ShutdownWarningTimer, FTimerDelegate::CreateUObject(this,
+				&ThisClass::StaffMessageAll, FString(TEXT("District closing in 10 seconds")), FString(TEXT("warning"))), Delay - 10.f, false);
+		}
+		GetWorldTimerManager().SetTimer(ShutdownTimer, FTimerDelegate::CreateUObject(this, &ThisClass::FinishStaffShutdown, Command.Message),
+			FMath::Max(0.1f, static_cast<float>(Delay)), false);
+		Server->AckCommand(Id, true, FString::Printf(TEXT("Shutting down in %d s with %d player(s)"), Delay, GetNumPlayers()));
+		return;
+	}
+	if (Command.Type == TEXT("exec"))
+	{
+		FBytesCaptureOutput Output;
+		const bool bHandled = GEngine && GEngine->Exec(GetWorld(), *Command.ConsoleCommand, Output);
+		UE_LOG(LogBytes, Display, TEXT("Staff exec: %s"), *Command.ConsoleCommand);
+		Server->AckCommand(Id, bHandled, bHandled ? (Output.Text.IsEmpty() ? FString(TEXT("OK")) : Output.Text) : FString(TEXT("Command not recognised")));
+		return;
+	}
+
+	// Everything else targets one player.
+	APlayerController* Player = FindPlayerByCharacter(Command.CharacterId);
+	ABytesPlayerController* BytesPlayer = Cast<ABytesPlayerController>(Player);
+	if (!Player)
+	{
+		Server->AckCommand(Id, false, TEXT("Player is no longer on this server"));
+		return;
+	}
+	if (Command.Type == TEXT("message"))
+	{
+		if (BytesPlayer)
+		{
+			BytesPlayer->ClientStaffMessage(Command.Message, Command.Style.IsEmpty() ? FString(TEXT("info")) : Command.Style);
+		}
+		Server->AckCommand(Id, BytesPlayer != nullptr, BytesPlayer ? TEXT("Delivered") : TEXT("Player can't receive messages"));
+	}
+	else if (Command.Type == TEXT("kick"))
+	{
+		const bool bKicked = GameSession && GameSession->KickPlayer(Player, FText::FromString(Command.Message));
+		Server->AckCommand(Id, bKicked, bKicked ? TEXT("Kicked") : TEXT("Kick failed"));
+	}
+	else if (Command.Type == TEXT("refresh_character"))
+	{
+		TWeakObjectPtr<APlayerController> WeakPlayer(Player);
+		TWeakObjectPtr<UBytesDistrictServerSubsystem> WeakServer(Server);
+		Server->FetchCharacter(Command.CharacterId, [WeakPlayer, WeakServer, Id](bool bSuccess, const FBytesCharacter& Character)
+		{
+			APlayerController* PC = WeakPlayer.Get();
+			ABytesPlayerState* State = PC ? PC->GetPlayerState<ABytesPlayerState>() : nullptr;
+			if (bSuccess && State)
+			{
+				State->Money = Character.Money;
+				State->Standing = Character.Standing;
+				State->SetIdentity(FBytesPublicIdentity::FromCharacter(Character));
+				if (ABytesPlayerController* BytesPC = Cast<ABytesPlayerController>(PC))
+				{
+					BytesPC->ClientRefreshAccount(); // wallet/inventory/mail live on the client's account view
+				}
+			}
+			if (UBytesDistrictServerSubsystem* S = WeakServer.Get())
+			{
+				S->AckCommand(Id, bSuccess && State, bSuccess ? TEXT("Refreshed") : TEXT("Backend lookup failed"));
+			}
+		});
+	}
+	else
+	{
+		Server->AckCommand(Id, false, FString::Printf(TEXT("Unknown command type '%s'"), *Command.Type));
+	}
+}
+
+void ABytesDistrictGameMode::FinishStaffShutdown(FString Message)
+{
+	TArray<APlayerController*> Players;
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		if (APlayerController* PC = It->Get())
+		{
+			Players.Add(PC);
+		}
+	}
+	for (APlayerController* PC : Players)
+	{
+		if (GameSession)
+		{
+			GameSession->KickPlayer(PC, FText::FromString(Message.IsEmpty() ? FString(TEXT("Server shut down by staff")) : Message));
+		}
+	}
+	UE_LOG(LogBytes, Display, TEXT("Shutting down by staff request"));
+	RequestEngineExit(TEXT("Root cockpit shutdown"));
 }
 
 // ---- Login pipeline -----------------------------------------------------------------------------

@@ -10,6 +10,7 @@
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "HAL/PlatformTime.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace
@@ -135,6 +136,9 @@ void UBytesAccountSubsystem::Logout()
 	}
 	const bool bWasInDistrict = State == EBytesClientState::InDistrict;
 	SessionToken.Reset();
+	Mail.Reset();
+	Wallet.Reset();
+	Inventory.Reset();
 	Account = FBytesAccount();
 	Characters.Reset();
 	Districts.Reset();
@@ -176,6 +180,9 @@ void UBytesAccountSubsystem::RefreshCharacters(FBytesDone Done)
 			}
 			This->Broadcast();
 			This->RefreshDistricts();
+			This->RefreshWallet();
+			This->RefreshMail();
+			This->RefreshInventory();
 			Complete(Done, true, FString());
 		});
 }
@@ -278,6 +285,148 @@ void UBytesAccountSubsystem::DeleteCharacter(const FString& CharacterIdOrName, F
 		});
 }
 
+// ---- Wallet / mail / inventory ------------------------------------------------------------------
+
+void UBytesAccountSubsystem::RefreshWallet(FBytesDone Done)
+{
+	if (!IsLoggedIn())
+	{
+		Complete(Done, false, TEXT("Not logged in"));
+		return;
+	}
+	TWeakObjectPtr<ThisClass> WeakThis(this);
+	BytesHttp::Send(TEXT("GET"), TEXT("/v1/wallet"), nullptr, AuthHeaders(), [WeakThis, Done](const FBytesHttpResult& Result)
+	{
+		ThisClass* This = WeakThis.Get();
+		FBytesWalletResponse Response;
+		if (!This || !Result.bOk || !Result.Parse(Response))
+		{
+			Complete(Done, false, Result.Describe());
+			return;
+		}
+		This->Wallet = Response.Currencies;
+		This->Broadcast();
+		Complete(Done, true, FString());
+	});
+}
+
+void UBytesAccountSubsystem::RefreshMail(FBytesDone Done)
+{
+	if (!IsLoggedIn())
+	{
+		Complete(Done, false, TEXT("Not logged in"));
+		return;
+	}
+	TWeakObjectPtr<ThisClass> WeakThis(this);
+	BytesHttp::Send(TEXT("GET"), TEXT("/v1/mail"), nullptr, AuthHeaders(), [WeakThis, Done](const FBytesHttpResult& Result)
+	{
+		ThisClass* This = WeakThis.Get();
+		FBytesMailResponse Response;
+		if (!This || !Result.bOk || !Result.Parse(Response))
+		{
+			Complete(Done, false, Result.Describe());
+			return;
+		}
+		This->Mail = Response.Mail;
+		This->Broadcast();
+		Complete(Done, true, FString());
+	});
+}
+
+void UBytesAccountSubsystem::ClaimMail(const FString& MailId, const FString& CharacterIdOrName, FBytesDone Done)
+{
+	const FBytesCharacter* Character = CharacterIdOrName.IsEmpty() ? GetSelectedCharacterPtr() : FindCharacter(CharacterIdOrName);
+	if (!Character)
+	{
+		Complete(Done, false, TEXT("Pick the character that should receive it"));
+		return;
+	}
+	const TSharedPtr<FJsonObject> Body = MakeBody();
+	Body->SetStringField(TEXT("characterId"), Character->CharacterId);
+	TWeakObjectPtr<ThisClass> WeakThis(this);
+	BytesHttp::Send(TEXT("POST"), FString::Printf(TEXT("/v1/mail/%s/claim"), *MailId), Body, AuthHeaders(),
+		[WeakThis, Done](const FBytesHttpResult& Result)
+		{
+			ThisClass* This = WeakThis.Get();
+			FBytesClaimResponse Response;
+			if (!This)
+			{
+				return;
+			}
+			if (!Result.bOk || !Result.Parse(Response))
+			{
+				This->SetError(Result.Error, Result.Reasons);
+				Complete(Done, false, Result.Describe());
+				return;
+			}
+			if (FBytesCharacter* Existing = This->Characters.FindByPredicate(
+				[&Response](const FBytesCharacter& C) { return C.CharacterId == Response.Character.CharacterId; }))
+			{
+				*Existing = Response.Character;
+			}
+			This->Wallet = Response.Currencies;
+			This->RefreshMail();
+			This->RefreshInventory(Response.Character.CharacterId);
+			Complete(Done, true, FString());
+		});
+}
+
+void UBytesAccountSubsystem::RefreshInventory(const FString& CharacterIdOrName, FBytesDone Done)
+{
+	const FBytesCharacter* Character = CharacterIdOrName.IsEmpty() ? GetSelectedCharacterPtr() : FindCharacter(CharacterIdOrName);
+	if (!IsLoggedIn() || !Character)
+	{
+		Complete(Done, false, TEXT("No character selected"));
+		return;
+	}
+	const FString CharacterId = Character->CharacterId;
+	TWeakObjectPtr<ThisClass> WeakThis(this);
+	BytesHttp::Send(TEXT("GET"), FString::Printf(TEXT("/v1/characters/%s/inventory"), *CharacterId), nullptr, AuthHeaders(),
+		[WeakThis, Done, CharacterId](const FBytesHttpResult& Result)
+		{
+			ThisClass* This = WeakThis.Get();
+			FBytesInventoryResponse Response;
+			if (!This || !Result.bOk || !Result.Parse(Response))
+			{
+				Complete(Done, false, Result.Describe());
+				return;
+			}
+			This->Inventory = Response.Items;
+			This->InventoryCharacterId = CharacterId;
+			This->Broadcast();
+			Complete(Done, true, FString());
+		});
+}
+
+void UBytesAccountSubsystem::PushStaffMessage(const FString& Message, const FString& Style)
+{
+	FBytesStaffMessage& Entry = StaffMessages.AddDefaulted_GetRef();
+	Entry.Message = Message;
+	Entry.Style = Style;
+	Entry.ReceivedAt = FPlatformTime::Seconds();
+	if (StaffMessages.Num() > 20)
+	{
+		StaffMessages.RemoveAt(0);
+	}
+	UE_LOG(LogBytes, Display, TEXT("[Staff] %s"), *Message);
+	Broadcast();
+}
+
+void UBytesAccountSubsystem::K2_RefreshMail(FBytesOnResult OnComplete)
+{
+	RefreshMail(Wrap(OnComplete));
+}
+
+void UBytesAccountSubsystem::K2_ClaimMail(const FString& MailId, const FString& CharacterId, FBytesOnResult OnComplete)
+{
+	ClaimMail(MailId, CharacterId, Wrap(OnComplete));
+}
+
+void UBytesAccountSubsystem::K2_RefreshInventory(const FString& CharacterId, FBytesOnResult OnComplete)
+{
+	RefreshInventory(CharacterId, Wrap(OnComplete));
+}
+
 bool UBytesAccountSubsystem::SelectCharacter(const FString& CharacterIdOrName)
 {
 	const FBytesCharacter* Character = FindCharacter(CharacterIdOrName);
@@ -288,6 +437,7 @@ bool UBytesAccountSubsystem::SelectCharacter(const FString& CharacterIdOrName)
 	SelectedCharacterId = Character->CharacterId;
 	Broadcast();
 	RefreshDistricts();
+	RefreshInventory();
 	return true;
 }
 

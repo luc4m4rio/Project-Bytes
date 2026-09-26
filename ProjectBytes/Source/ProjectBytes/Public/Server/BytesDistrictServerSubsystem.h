@@ -8,6 +8,8 @@
 
 struct FBytesHttpResult;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FBytesOnServerCommand, const FBytesServerCommand&);
+
 /**
  * Server side of the district model. A server becomes "managed" when launched with -District=<id>:
  *
@@ -64,6 +66,15 @@ public:
 	/** Persist progression. Threat empty = unchanged. */
 	void ReportProgress(const FString& CharacterId, int32 StandingDelta, int32 MoneyDelta, const FString& Threat,
 		TFunction<void(bool bSuccess, const FBytesCharacter& Character)> Done);
+
+	/** Fresh character record from the backend (after a staff grant). */
+	void FetchCharacter(const FString& CharacterId, TFunction<void(bool bSuccess, const FBytesCharacter& Character)> Done);
+
+	/** Report a staff command's outcome back to the cockpit. */
+	void AckCommand(const FString& CommandId, bool bSuccess, const FString& Message);
+
+	/** Staff commands delivered with heartbeats. ABytesDistrictGameMode executes them. */
+	FBytesOnServerCommand OnCommand;
 
 	void AddOnlineCharacter(const FString& CharacterId);
 	void RemoveOnlineCharacter(const FString& CharacterId);

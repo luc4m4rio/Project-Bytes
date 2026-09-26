@@ -35,6 +35,11 @@ public:
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	virtual void Logout(AController* Exiting) override;
 	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	/** Players currently in this district by character id (null if not here). */
+	APlayerController* FindPlayerByCharacter(const FString& CharacterId) const;
 
 	/** Grant standing (rank XP) and money; persisted through the backend when managed. */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Bytes")
@@ -63,6 +68,15 @@ private:
 	UBytesDistrictServerSubsystem* GetServerSubsystem() const;
 	bool ResolveIdentity(const FString& Options, bool bCommit, FBytesTicketClaims& OutClaims, FString& OutError);
 	bool ResolveOfflineIdentity(const FString& Options, bool bCommit, FBytesTicketClaims& OutClaims, FString& OutError);
+
+	/** Executes root-cockpit commands delivered with the server heartbeat, then acks the result. */
+	void HandleStaffCommand(const FBytesServerCommand& Command);
+	void StaffMessageAll(const FString& Message, const FString& Style);
+	void FinishStaffShutdown(FString Message);
+
+	FDelegateHandle StaffCommandHandle;
+	FTimerHandle ShutdownTimer;
+	FTimerHandle ShutdownWarningTimer;
 
 	/** CharacterId -> controller, to prevent the same character being in the district twice. */
 	TMap<FString, TWeakObjectPtr<APlayerController>> CharacterControllers;

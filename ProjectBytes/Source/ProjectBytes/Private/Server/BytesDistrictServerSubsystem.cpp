@@ -178,10 +178,32 @@ void UBytesDistrictServerSubsystem::SendHeartbeat()
 		[WeakThis, SentServerId](const FBytesHttpResult& Result)
 		{
 			ThisClass* This = WeakThis.Get();
-			if (This && Result.Status == 404 && This->ServerId == SentServerId)
+			if (!This)
+			{
+				return;
+			}
+			if (Result.Status == 404 && This->ServerId == SentServerId)
 			{
 				UE_LOG(LogBytes, Warning, TEXT("Backend no longer knows this server (restarted?), registering again"));
 				This->ServerId.Reset();
+				return;
+			}
+			FBytesHeartbeatResponse Response;
+			if (!Result.bOk || !Result.Parse(Response))
+			{
+				return;
+			}
+			for (const FBytesServerCommand& Command : Response.Commands)
+			{
+				UE_LOG(LogBytes, Display, TEXT("Staff command %s (%s)"), *Command.Type, *Command.CommandId);
+				if (This->OnCommand.IsBound())
+				{
+					This->OnCommand.Broadcast(Command);
+				}
+				else
+				{
+					This->AckCommand(Command.CommandId, false, TEXT("No game mode is handling staff commands on this server"));
+				}
 			}
 		});
 }
@@ -260,6 +282,37 @@ void UBytesDistrictServerSubsystem::ReportProgress(const FString& CharacterId, i
 				Done(bSuccess, Response.Character);
 			}
 		});
+}
+
+void UBytesDistrictServerSubsystem::FetchCharacter(const FString& CharacterId, TFunction<void(bool bSuccess, const FBytesCharacter& Character)> Done)
+{
+	const TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("serverId"), ServerId);
+	Body->SetStringField(TEXT("characterId"), CharacterId);
+	BytesHttp::Send(TEXT("POST"), TEXT("/v1/servers/characters/get"), Body, ServerHeaders(),
+		[Done](const FBytesHttpResult& Result)
+		{
+			FBytesCharacterResponse Response;
+			const bool bSuccess = Result.bOk && Result.Parse(Response);
+			if (Done)
+			{
+				Done(bSuccess, Response.Character);
+			}
+		});
+}
+
+void UBytesDistrictServerSubsystem::AckCommand(const FString& CommandId, bool bSuccess, const FString& Message)
+{
+	const TSharedPtr<FJsonObject> Entry = MakeShared<FJsonObject>();
+	Entry->SetStringField(TEXT("commandId"), CommandId);
+	Entry->SetBoolField(TEXT("ok"), bSuccess);
+	Entry->SetStringField(TEXT("message"), Message.Left(4000));
+	const TSharedPtr<FJsonObject> Body = MakeShared<FJsonObject>();
+	Body->SetStringField(TEXT("serverId"), ServerId);
+	TArray<TSharedPtr<FJsonValue>> Results;
+	Results.Add(MakeShared<FJsonValueObject>(Entry));
+	Body->SetArrayField(TEXT("results"), Results);
+	BytesHttp::Send(TEXT("POST"), TEXT("/v1/servers/commands/ack"), Body, ServerHeaders(), nullptr);
 }
 
 void UBytesDistrictServerSubsystem::AddOnlineCharacter(const FString& CharacterId)

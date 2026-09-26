@@ -10,6 +10,7 @@ Project Bytes local playtest launcher.
     python Tools/bytes.py status                              running instances + populations
     python Tools/bytes.py admin set-stats Tester1 --rank 80 --threat Silver
     python Tools/bytes.py build                               compile the editor target
+    python Tools/bytes.py staff create root                   first root cockpit account (owner, with 2FA)
 
 Servers and clients run from the *editor* binary (UnrealEditor -server / -game), which works with the
 launcher-installed engine; no source build or packaging needed. Pass --server-exe / --client-exe to use
@@ -287,6 +288,9 @@ def cmd_up(args) -> int:
         procs.start(f"client-{user}", client_cmd(args, cfg, i, user, f"Tester{i + 1}", faction, join), log=False)
 
     print(f"\nBackend: {backend_url(cfg)}   status: python Tools/bytes.py status")
+    if cfg.get("adminPort"):
+        print(f"Root cockpit: http://{cfg.get('adminHost', '127.0.0.1')}:{cfg['adminPort']}/   "
+              f"(first time: python Tools/bytes.py staff create root)")
     if args.clients:
         print(f"Clients auto-login as tester1..tester{args.clients} (password '{args.password}') and join '{join}'.")
     procs.wait()
@@ -336,6 +340,10 @@ def cmd_status(args) -> int:
 
 def cmd_admin(args) -> int:
     return subprocess.call([sys.executable, BACKEND, "--config", BACKEND_CONFIG, "admin"] + args.rest, cwd=PROJECT_DIR)
+
+
+def cmd_staff(args) -> int:
+    return subprocess.call([sys.executable, BACKEND, "--config", BACKEND_CONFIG, "staff"] + args.rest, cwd=PROJECT_DIR)
 
 
 def cmd_build(args) -> int:
@@ -406,6 +414,10 @@ def main(argv=None) -> int:
     ad = sub.add_parser("admin", help="backend admin commands (list, set-stats, flag, unflag, slots)")
     ad.add_argument("rest", nargs=argparse.REMAINDER)
     ad.set_defaults(func=cmd_admin)
+
+    sf = sub.add_parser("staff", help="root cockpit staff accounts (create, list, reset-2fa, disable, verify-audit)")
+    sf.add_argument("rest", nargs=argparse.REMAINDER)
+    sf.set_defaults(func=cmd_staff)
 
     bd = sub.add_parser("build", help="compile the project with UnrealBuildTool")
     bd.add_argument("--target", default="ProjectBytesEditor",

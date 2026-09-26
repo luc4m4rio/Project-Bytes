@@ -139,6 +139,7 @@ console (these need backend `devMode`), or `bytes.py admin set-stats`.
 | `Game/BytesPlayerController` | Shows the kick reason in the frontend, plus dev cheat RPCs. |
 | `Game/BytesDebugHUD` | Canvas HUD so everything can be tested with no assets (`bytes.HUD 0` hides it). |
 | `Backend/server.py`, `Backend/config.json` | Backend service (Python 3.9+, standard library only, SQLite). |
+| `Backend/admin.py`, `staff.py`, `economy.py`, `orchestrator.py`, `cockpit/` | Root cockpit: staff API, auth/audit, economy/mail, deployments, web UI. |
 | `Tools/bytes.py`, `Playtest.bat`, `playtest.sh` | Local cluster launcher. |
 
 ## Character creator
@@ -311,6 +312,110 @@ look, run `Playtest up -d financial -c 2`, which opens two windows.
 | `Game/BytesCharacter` | TPP camera (over-the-shoulder, zooms when aiming), Enhanced Input built at runtime (replaceable by assets), replication of gait, aim and acceleration to other players. |
 | `Animation/BytesAnimInstance` | AnimBP parent: chooser keys, kinematics, warping inputs, a light trajectory prediction for the locomotion state, debug drawing. |
 | `Game/BytesTestFloorSubsystem` | Playable floor on the empty dev map. |
+
+## Root cockpit (staff control panel)
+
+The root cockpit is the owner and staff interface for running the live game. From one web panel,
+staff can:
+
+- see server deployment and spin up or stop instances
+- send commands to all servers, a district, one server or one player session
+- read the ban log
+- give currency and items
+- send rewards and gifts to one player or to every player
+
+It is served by the backend on a **separate admin listener**: `http://127.0.0.1:8090/` by default,
+bound to localhost only. None of the admin routes exist on the public game port.
+
+```
+python Tools/bytes.py staff create root      # first owner: prints a 2FA secret for your authenticator app
+python Tools/bytes.py up -d financial -c 1   # backend + game + cockpit
+open http://127.0.0.1:8090/                  # sign in: username, password, 6-digit code
+```
+
+| Page | What staff can do |
+|---|---|
+| **Overview** | See players online vs capacity, servers, accounts, active bans, pending commands, per-district load and recent staff activity. Broadcast to everyone. |
+| **Deployment** | Spin up N instances of a district (with region tag and max players), watch them register, read their logs. Stop gracefully (players get a countdown) or kill. |
+| **Servers & Sessions** | See every live instance and who is on it. Send a broadcast, shutdown or console command to all servers, a district or one server. Message or kick an individual player. The command history shows each server's acknowledgement. |
+| **Players** | Search by username, character name or id. View characters, inventories, wallet, unclaimed mail, bans and the staff actions taken on them. Ban (1 h to permanent, with a reason shown to the player), force logout, set account flags, **give** currency or items (applied instantly and pushed to the player's district), remove items, send a mail gift. |
+| **Rewards & Gifts** | **Gift every player** currency and/or items through their mailbox. This needs the typed confirmation `GIFT ALL PLAYERS`. Options: expiry, accounts created later, an in-game announcement. Shows claim counts; unclaimed gifts can be revoked. |
+| **Ban Log** | Every ban with who issued it, why, until when, and any revoke. Revoke from here. |
+| **Audit Log** | Every staff action (including failed sign-ins) with staff, IP, target, reason and details. *Verify chain* proves nothing was edited or deleted. |
+| **Staff** | Add staff with a role, change roles, disable accounts, reset 2FA. |
+
+### How it's locked down
+
+- **Separate identities.** Staff accounts are not player accounts. The first owner can only be created
+  from the command line on the server machine (`staff create`).
+- **Sign-in.**
+  - Password (12+ characters) plus a **mandatory TOTP code** (`staffRequire2FA`).
+  - Failed sign-ins give one generic error.
+  - 5 failures lock that username and IP out for 10 minutes.
+  - Sessions last 8 hours and end after 30 minutes idle.
+- **Roles and permissions**, checked on the server for every request (`staffRoles` / `staffRoleLimits`
+  in config to customise):
+
+  | Role | Can | Limits |
+  |---|---|---|
+  | owner | everything, including staff management, raw server console, and minting other owners | - |
+  | admin | deploy, all commands except console, bans, grants, gifts to everyone | - |
+  | gamemaster | commands, kicks, bans, grants, single-player gifts | bans ≤30 days, ≤100k currency, ≤10 items |
+  | moderator | kick, temporary bans | bans ≤72 h |
+  | support | view, single-player gifts | ≤10k currency, 1 item |
+
+- **No escalation.**
+  - Only owners can grant the owner role or change an owner.
+  - You can't disable yourself.
+  - The last active owner can't be removed.
+- **Every action needs a written reason** and is appended to a **hash-chained audit log**. Each
+  entry commits to the previous one, so editing or deleting a row breaks the chain. There is no API to
+  change the log.
+- **Web hardening.**
+  - Strict Content-Security-Policy with no inline scripts, and the page can't be framed.
+  - All player-supplied text is rendered as text, never HTML (tested with script-injection names and
+    reasons).
+  - The token lives in session storage and is sent as a header, so CSRF doesn't apply.
+- **Network.** `adminHost` / `adminAllowedIps` restrict who can reach it. For remote staff, put it
+  behind a VPN or an SSH tunnel (`ssh -L 8090:127.0.0.1:8090 host`) rather than exposing the port.
+
+### How commands reach the game
+
+The cockpit queues each command. The target district server receives it with its next heartbeat
+(within 5 s), `ABytesDistrictGameMode` runs it, and the result is acknowledged back to the cockpit.
+
+| Command | Effect in game |
+|---|---|
+| broadcast / message | a `[STAFF]` toast on players' screens (styles: info, warning, event, gift) |
+| kick | removes the player, and their client shows the reason |
+| shutdown | countdown warnings, then everyone is kicked and the server exits |
+| refresh_character | reloads rank, money and identity after a grant; the client reloads wallet, inventory and mail |
+| exec | runs a console command on the dedicated server and returns its output (owner only) |
+
+Bans are enforced at login, at district join, and when a server redeems a join ticket. Online
+characters are kicked immediately.
+
+### Economy
+
+`Content/Data/ItemCatalog.json` defines:
+- **currencies:**
+  - `$`: per character, earned in districts.
+  - **BP**: account-wide, shared by all characters.
+- **items:** weapons, vehicles, consumables, specials such as boosts, tokens and titles, and timed rentals.
+
+Players see their wallet and mail on the frontend HUD. Console commands: `bytes.Wallet`, `bytes.Mail`,
+`bytes.Claim 1 [character]`, `bytes.Inventory`. All of these are also available from Blueprints
+(`GetWallet`, `GetMail`, `ClaimMail`, `GetInventory`).
+
+### Deployment settings
+
+In `Backend/config.json → deploy`, set either:
+- `serverExe`: a packaged dedicated server, or
+- `engineDir` (or the `UE_ENGINE_DIR` environment variable): the editor in `-server` mode, same as the launcher.
+
+Instances are started on this machine with the right `-District`, `-port`, backend URL and server key.
+They show up once they register. Graceful stops send a shutdown command, then force-kill after
+`forceKillAfterSeconds`.
 
 ## Working in the editor (PIE)
 

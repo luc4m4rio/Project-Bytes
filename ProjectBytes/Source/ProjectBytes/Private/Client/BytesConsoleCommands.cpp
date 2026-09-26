@@ -283,4 +283,112 @@ namespace BytesConsole
 			PC->ServerDevSetMovementFeel(static_cast<uint8>(Value));
 			UE_LOG(LogBytes, Display, TEXT("Movement feel: %s"), *Args[0]);
 		});
+
+	FCommand CmdWallet(TEXT("bytes.Wallet"), TEXT("Show account currencies"),
+		[](const TArray<FString>&, UWorld* World)
+		{
+			if (UBytesAccountSubsystem* Account = GetAccount(World))
+			{
+				TWeakObjectPtr<UBytesAccountSubsystem> Weak(Account);
+				Account->RefreshWallet([Weak](bool bSuccess, const FString& Error)
+				{
+					UBytesAccountSubsystem* Self = Weak.Get();
+					if (!Self || !bSuccess)
+					{
+						UE_LOG(LogBytes, Warning, TEXT("Wallet: %s"), *Error);
+						return;
+					}
+					for (const FBytesCurrencyBalance& Balance : Self->GetWalletRef())
+					{
+						UE_LOG(LogBytes, Display, TEXT("  %lld %s"), Balance.Amount, *Balance.DisplayName);
+					}
+					if (const FBytesCharacter* Selected = Self->GetSelectedCharacterPtr())
+					{
+						UE_LOG(LogBytes, Display, TEXT("  $%d on %s"), Selected->Money, *Selected->Name);
+					}
+				});
+			}
+		});
+
+	FCommand CmdMail(TEXT("bytes.Mail"), TEXT("List unclaimed rewards (staff mail and gifts)"),
+		[](const TArray<FString>&, UWorld* World)
+		{
+			if (UBytesAccountSubsystem* Account = GetAccount(World))
+			{
+				TWeakObjectPtr<UBytesAccountSubsystem> Weak(Account);
+				Account->RefreshMail([Weak](bool bSuccess, const FString& Error)
+				{
+					UBytesAccountSubsystem* Self = Weak.Get();
+					if (!Self || !bSuccess)
+					{
+						UE_LOG(LogBytes, Warning, TEXT("Mail: %s"), *Error);
+						return;
+					}
+					int32 Number = 0;
+					for (const FBytesMail& Entry : Self->GetMailRef())
+					{
+						TArray<FString> Contents;
+						for (const FBytesMailAttachment& Attachment : Entry.Attachments)
+						{
+							Contents.Add(Attachment.DisplayName);
+						}
+						UE_LOG(LogBytes, Display, TEXT("  %d. %s - %s  [%s]  (%s)"), ++Number, *Entry.Subject, *Entry.Sender,
+							*FString::Join(Contents, TEXT(", ")), *Entry.MailId);
+					}
+					if (Number == 0)
+					{
+						UE_LOG(LogBytes, Display, TEXT("  Mailbox empty"));
+					}
+				});
+			}
+		});
+
+	FCommand CmdClaim(TEXT("bytes.Claim"), TEXT("bytes.Claim <number|mailId> [character] - claim a reward onto a character (default: selected)"),
+		[](const TArray<FString>& Args, UWorld* World)
+		{
+			UBytesAccountSubsystem* Account = GetAccount(World);
+			if (!Account || !NeedArgs(Args, 1, TEXT("bytes.Claim <number|mailId> [character]")))
+			{
+				return;
+			}
+			FString MailId = Args[0];
+			if (Args[0].IsNumeric())
+			{
+				const int32 Index = FCString::Atoi(*Args[0]) - 1;
+				if (!Account->GetMailRef().IsValidIndex(Index))
+				{
+					UE_LOG(LogBytes, Warning, TEXT("No mail #%s (bytes.Mail lists them)"), *Args[0]);
+					return;
+				}
+				MailId = Account->GetMailRef()[Index].MailId;
+			}
+			Account->ClaimMail(MailId, Args.Num() > 1 ? Args[1] : FString(), Report(TEXT("Claim")));
+		});
+
+	FCommand CmdInventory(TEXT("bytes.Inventory"), TEXT("bytes.Inventory [character] - list a character's items"),
+		[](const TArray<FString>& Args, UWorld* World)
+		{
+			if (UBytesAccountSubsystem* Account = GetAccount(World))
+			{
+				TWeakObjectPtr<UBytesAccountSubsystem> Weak(Account);
+				Account->RefreshInventory(Args.Num() > 0 ? Args[0] : FString(), [Weak](bool bSuccess, const FString& Error)
+				{
+					UBytesAccountSubsystem* Self = Weak.Get();
+					if (!Self || !bSuccess)
+					{
+						UE_LOG(LogBytes, Warning, TEXT("Inventory: %s"), *Error);
+						return;
+					}
+					for (const FBytesInventoryItem& Item : Self->GetInventoryRef())
+					{
+						UE_LOG(LogBytes, Display, TEXT("  %-28s x%d  [%s]%s"), *Item.DisplayName, Item.Quantity, *Item.Category,
+							Item.ExpiresAt > 0 ? TEXT("  (rental)") : TEXT(""));
+					}
+					if (Self->GetInventoryRef().Num() == 0)
+					{
+						UE_LOG(LogBytes, Display, TEXT("  Inventory empty"));
+					}
+				});
+			}
+		});
 }

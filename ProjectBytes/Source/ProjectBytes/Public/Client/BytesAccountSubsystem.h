@@ -71,6 +71,23 @@ public:
 	const TArray<FBytesCharacter>& GetCharactersRef() const { return Characters; }
 	const TArray<FBytesDistrict>& GetDistrictsRef() const { return Districts; }
 
+	/** Account-wide currencies (e.g. BP). Character cash is FBytesCharacter::Money. */
+	void RefreshWallet(FBytesDone Done = nullptr);
+	/** Unclaimed rewards: staff mail and gifts to everyone. */
+	void RefreshMail(FBytesDone Done = nullptr);
+	/** Claim a mailbox reward onto a character (items and $ land on it; BP goes to the account). */
+	void ClaimMail(const FString& MailId, const FString& CharacterIdOrName, FBytesDone Done = nullptr);
+	/** Inventory of a character (defaults to the selected one). */
+	void RefreshInventory(const FString& CharacterIdOrName = FString(), FBytesDone Done = nullptr);
+
+	/** Staff broadcast / message received from the district server (or locally). */
+	void PushStaffMessage(const FString& Message, const FString& Style);
+
+	const TArray<FBytesMail>& GetMailRef() const { return Mail; }
+	const TArray<FBytesCurrencyBalance>& GetWalletRef() const { return Wallet; }
+	const TArray<FBytesInventoryItem>& GetInventoryRef() const { return Inventory; }
+	const TArray<FBytesStaffMessage>& GetStaffMessagesRef() const { return StaffMessages; }
+
 	/** Called by ABytesPlayerController when the server kicks us, so the reason survives the map change. */
 	void NotifyKicked(const FString& Reason);
 
@@ -111,6 +128,28 @@ public:
 	/** Disconnects from the district server and loads the frontend map. */
 	UFUNCTION(BlueprintCallable, Category = "Bytes|Districts")
 	void ReturnToFrontend();
+
+	UFUNCTION(BlueprintCallable, Category = "Bytes|Economy", meta = (DisplayName = "Refresh Mail"))
+	void K2_RefreshMail(FBytesOnResult OnComplete);
+
+	UFUNCTION(BlueprintCallable, Category = "Bytes|Economy", meta = (DisplayName = "Claim Mail"))
+	void K2_ClaimMail(const FString& MailId, const FString& CharacterId, FBytesOnResult OnComplete);
+
+	UFUNCTION(BlueprintCallable, Category = "Bytes|Economy", meta = (DisplayName = "Refresh Inventory"))
+	void K2_RefreshInventory(const FString& CharacterId, FBytesOnResult OnComplete);
+
+	UFUNCTION(BlueprintPure, Category = "Bytes|Economy")
+	TArray<FBytesMail> GetMail() const { return Mail; }
+
+	UFUNCTION(BlueprintPure, Category = "Bytes|Economy")
+	TArray<FBytesCurrencyBalance> GetWallet() const { return Wallet; }
+
+	UFUNCTION(BlueprintPure, Category = "Bytes|Economy")
+	TArray<FBytesInventoryItem> GetInventory() const { return Inventory; }
+
+	/** Recent staff messages (newest last); show them as toasts in your UI. */
+	UFUNCTION(BlueprintPure, Category = "Bytes|Staff")
+	TArray<FBytesStaffMessage> GetStaffMessages() const { return StaffMessages; }
 
 	UFUNCTION(BlueprintPure, Category = "Bytes|Account")
 	bool IsLoggedIn() const { return !SessionToken.IsEmpty(); }
@@ -158,6 +197,12 @@ private:
 
 	void RunAutoLoginFromCommandLine();
 	void AutoJoin(const FString& DistrictId, int32 AttemptsLeft);
+
+	TArray<FBytesMail> Mail;
+	TArray<FBytesCurrencyBalance> Wallet;
+	TArray<FBytesInventoryItem> Inventory;
+	FString InventoryCharacterId;
+	TArray<FBytesStaffMessage> StaffMessages;
 
 	FString SessionToken;
 	FBytesAccount Account;

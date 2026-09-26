@@ -367,3 +367,141 @@ struct FBytesRedeemResponse
 	UPROPERTY()
 	TArray<FString> AccountFlags;
 };
+
+// ---- Staff commands (root cockpit -> backend -> district server heartbeat) -----------------------
+
+/** One command from the cockpit. Fields not used by a type are empty. */
+USTRUCT(BlueprintType)
+struct PROJECTBYTES_API FBytesServerCommand
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Staff") FString CommandId;
+	/** broadcast, message, kick, shutdown, refresh_character, exec */
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Staff") FString Type;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Staff") FString CharacterId;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Staff") FString Message;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Staff") FString Reason;
+	/** info, warning, event, gift */
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Staff") FString Style;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Staff") FString ConsoleCommand;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Staff") int32 DelaySeconds = 0;
+};
+
+USTRUCT()
+struct FBytesHeartbeatResponse
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FBytesServerCommand> Commands;
+};
+
+// ---- Economy (wallet, inventory, mailbox) --------------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct PROJECTBYTES_API FBytesCurrencyBalance
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString Currency;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString DisplayName;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") int64 Amount = 0;
+};
+
+USTRUCT(BlueprintType)
+struct PROJECTBYTES_API FBytesInventoryItem
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString EntryId;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString ItemId;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString DisplayName;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString Category;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") int32 Quantity = 0;
+	/** Unix seconds, 0 = permanent. */
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") int64 ExpiresAt = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString Source;
+};
+
+USTRUCT(BlueprintType)
+struct PROJECTBYTES_API FBytesMailAttachment
+{
+	GENERATED_BODY()
+
+	/** currency or item */
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString Type;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString Currency;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") int64 Amount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString ItemId;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") int32 Quantity = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString DisplayName;
+};
+
+/** A reward in the account mailbox: personal mail or a gift to everyone. Claimed onto a character. */
+USTRUCT(BlueprintType)
+struct PROJECTBYTES_API FBytesMail
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString MailId;
+	/** mail or gift */
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString Kind;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString Subject;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString Body;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") FString Sender;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") TArray<FBytesMailAttachment> Attachments;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") int64 CreatedAt = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Economy") int64 ExpiresAt = 0;
+};
+
+USTRUCT()
+struct FBytesWalletResponse
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FBytesCurrencyBalance> Currencies;
+};
+
+USTRUCT()
+struct FBytesInventoryResponse
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FBytesInventoryItem> Items;
+};
+
+USTRUCT()
+struct FBytesMailResponse
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FBytesMail> Mail;
+};
+
+USTRUCT()
+struct FBytesClaimResponse
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FBytesCharacter Character;
+
+	UPROPERTY()
+	TArray<FBytesCurrencyBalance> Currencies;
+};
+
+/** A message from staff shown on screen (broadcasts, direct messages, gift notices). */
+USTRUCT(BlueprintType)
+struct PROJECTBYTES_API FBytesStaffMessage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Staff") FString Message;
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Staff") FString Style;
+	/** FPlatformTime::Seconds() when received. */
+	UPROPERTY(BlueprintReadOnly, Category = "Bytes|Staff") double ReceivedAt = 0.0;
+};
